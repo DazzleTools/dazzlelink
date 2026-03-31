@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [Unreleased]
+
+### Added
+- Relative path support for portable dazzlelinks across synced machines (Refs #13)
+  - `target_representations.relative_path` computed during `create`
+  - `execute` fallback chain: absolute -> relative -> path_representations
+  - Enables dazzlelinks to work when library mount points differ between machines
+- git-repokit-common subtree at `scripts/` for shared hooks and tools
+- File association scripts for Windows `.dazzlelink` extension
+
+### Fixed
+- Renamed `pyproject-toml.py` to `pyproject.toml` for PyPI compatibility
+
 ## [0.6.0] - 2025-03-28
 
 ### Added

@@ -1017,25 +1017,43 @@ class DazzleLink:
             if is_symlink:
                 target_path = os.readlink(link_path)
                 debug_print(f"Symlink target: {target_path}")
-                
-                # Convert to absolute path if relative
+
+                # Convert to absolute path if relative, preserving original relative form
                 if not os.path.isabs(target_path):
+                    original_relative_target = target_path
                     base_dir = os.path.dirname(str(link_path))
                     target_path = os.path.normpath(os.path.join(base_dir, target_path))
                     debug_print(f"Converted relative target to absolute: {target_path}")
+                else:
+                    original_relative_target = None
             else:
                 # If not a symlink, use the link_path itself as the target path
                 # IMPORTANT: Do NOT use resolve() here as it would follow symlinks
                 target_path = str(link_path)
+                original_relative_target = None
                 debug_print(f"Not a symlink, using path as target: {target_path}")
-            
+
             # Get target path representations for UNC path handling
             if hasattr(self, '_get_path_representations'):
                 target_representations = self._get_path_representations(target_path)
                 debug_print(f"Target representations: {target_representations}")
             else:
                 target_representations = {"original_path": str(target_path)}
-            
+
+            # Compute and store relative path for portability
+            if original_relative_target:
+                target_representations["relative_path"] = original_relative_target
+                debug_print(f"Preserved original relative target: {original_relative_target}")
+            else:
+                try:
+                    output_dir = os.path.dirname(os.path.abspath(str(output_path))) if output_path else os.path.dirname(os.path.abspath(str(link_path)))
+                    computed_relative = os.path.relpath(target_path, output_dir)
+                    target_representations["relative_path"] = computed_relative
+                    debug_print(f"Computed relative path: {computed_relative}")
+                except ValueError:
+                    debug_print("Cannot compute relative path (cross-drive)")
+                    pass
+
             # Create a new DazzleLinkData instance
             link_data = DazzleLinkData()
             
@@ -3409,11 +3427,43 @@ class DazzleLink:
                         print(f"  Size: {size_str}")
             
             elif execute_mode == "open" or execute_mode == "auto":
-                # Try to open the target
+                resolved_path = target_path
+
+                # Fallback chain for resolving the target path
+                if not os.path.exists(resolved_path):
+                    # Fallback 1: Try relative path from dazzlelink file's directory
+                    target_reps = {}
+                    if "link" in link_data:
+                        target_reps = link_data["link"].get("target_representations", {})
+                    relative_path = target_reps.get("relative_path")
+
+                    if relative_path:
+                        dazzlelink_dir = os.path.dirname(os.path.abspath(dazzlelink_path))
+                        candidate = os.path.normpath(os.path.join(dazzlelink_dir, relative_path))
+                        if os.path.exists(candidate):
+                            resolved_path = candidate
+
+                    # Fallback 2: Try other path representations (UNC, drive letter)
+                    if not os.path.exists(resolved_path):
+                        for key in ("unc_path", "drive_path", "original_path"):
+                            candidate = target_reps.get(key)
+                            if candidate and os.path.exists(candidate):
+                                resolved_path = candidate
+                                break
+
+                    if not os.path.exists(resolved_path):
+                        raise DazzleLinkException(
+                            f"Target not found. Tried:\n"
+                            f"  Absolute: {target_path}\n"
+                            f"  Relative: {relative_path or '(not stored)'}\n"
+                            f"  Representations: {list(target_reps.keys())}"
+                        )
+
+                # Open the resolved target
                 if os.name == 'nt':
-                    os.startfile(target_path)
+                    os.startfile(resolved_path)
                 else:
-                    subprocess.run(['xdg-open', target_path])
+                    subprocess.run(['xdg-open', resolved_path])
             
             else:
                 raise DazzleLinkException(f"Unknown execution mode: {execute_mode}")

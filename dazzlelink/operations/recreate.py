@@ -247,12 +247,52 @@ def execute_dazzlelink(dazzlelink_path, mode=None, config_override=None):
                     print(f"  Size: {size_str}")
         
         elif execute_mode == "open" or execute_mode == "auto":
-            # Try to open the target
+            resolved_path = target_path
+
+            # Fallback chain for resolving the target path
+            if not os.path.exists(resolved_path):
+                # Fallback 1: Try relative path from dazzlelink file's directory
+                target_reps = {}
+                if "link" in link_data:
+                    target_reps = link_data["link"].get("target_representations", {})
+                relative_path = target_reps.get("relative_path")
+
+                if relative_path:
+                    dazzlelink_dir = os.path.dirname(os.path.abspath(dazzlelink_path))
+                    candidate = os.path.normpath(os.path.join(dazzlelink_dir, relative_path))
+                    if os.path.exists(candidate):
+                        resolved_path = candidate
+
+                # Fallback 2: Try other path representations (UNC, drive letter)
+                if not os.path.exists(resolved_path):
+                    for key in ("unc_path", "drive_path", "original_path"):
+                        candidate = target_reps.get(key)
+                        if candidate and os.path.exists(candidate):
+                            resolved_path = candidate
+                            break
+
+                # Fallback 3: Try path_representations from link section
+                if not os.path.exists(resolved_path) and "link" in link_data:
+                    path_reps = link_data["link"].get("path_representations", {})
+                    for key, candidate in path_reps.items():
+                        if isinstance(candidate, str) and os.path.exists(candidate):
+                            resolved_path = candidate
+                            break
+
+                if not os.path.exists(resolved_path):
+                    raise DazzleLinkException(
+                        f"Target not found. Tried:\n"
+                        f"  Absolute: {target_path}\n"
+                        f"  Relative: {relative_path or '(not stored)'}\n"
+                        f"  Representations: {list(target_reps.keys())}"
+                    )
+
+            # Open the resolved target
             if os.name == 'nt':
-                os.startfile(target_path)
+                os.startfile(resolved_path)
             else:
                 import subprocess
-                subprocess.run(['xdg-open', target_path])
+                subprocess.run(['xdg-open', resolved_path])
         
         else:
             raise DazzleLinkException(f"Unknown execution mode: {execute_mode}")
