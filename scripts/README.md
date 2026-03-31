@@ -1,20 +1,32 @@
 # git-repokit-common
 
-Shared scripts, hooks, and developer tools for DazzleTools projects. Consumed as a git submodule in `scripts/`.
+Shared scripts, hooks, and developer tools for DazzleTools projects. Consumed as a git subtree in `scripts/`.
 
 ## Quick Start
 
 Add to your project:
 
 ```bash
-git submodule add https://github.com/DazzleTools/git-repokit-common.git scripts/repokit-common
-bash scripts/repokit-common/install-hooks.sh
+# Add as a subtree at scripts/
+git subtree add --prefix=scripts https://github.com/DazzleTools/git-repokit-common.git main --squash
+
+# Add named remote for convenience
+git remote add repokit-common https://github.com/DazzleTools/git-repokit-common.git
+
+# Install git hooks
+bash scripts/install-hooks.sh
 ```
 
 Update to latest:
 
 ```bash
-cd scripts/repokit-common && git pull origin main
+git subtree pull --prefix=scripts repokit-common main --squash
+```
+
+Push local improvements back upstream:
+
+```bash
+git subtree push --prefix=scripts repokit-common main
 ```
 
 ## What's Included
