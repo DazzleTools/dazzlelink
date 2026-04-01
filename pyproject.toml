@@ -63,7 +63,7 @@ dazzlelink = "dazzlelink.cli:main"
 packages = ["dazzlelink"]
 
 [tool.setuptools.dynamic]
-version = {attr = "dazzlelink.__version__"}
+version = {attr = "dazzlelink._version.PIP_VERSION"}
 
 [tool.black]
 line-length = 100
@@ -79,6 +79,13 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+[tool.repokit-common]
+version-source = "dazzlelink/_version.py"
+changelog = "CHANGELOG.md"
+repo-url = "https://github.com/DazzleTools/dazzlelink"
+tag-prefix = "v"
+private-patterns = ["private/", "local/", ".env"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

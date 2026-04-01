@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
-## [Unreleased]
+## [0.7.0] - 2026-03-31
 
 ### Added
 - Relative path support for portable dazzlelinks across synced machines (Refs #13)

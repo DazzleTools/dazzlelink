@@ -35,7 +35,7 @@ import subprocess
 import time
 from pathlib import Path
 
-__version__ = "0.5.0"
+__version__ = "0.7.0"
 
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
@@ -3311,6 +3311,151 @@ class DazzleLink:
         return result
     
 
+    def rebase_dazzlelinks(self, directory, recursive=True, only_broken=False):
+        """
+        Rebase .dazzlelink files by synchronizing their absolute and relative paths.
+
+        For each .dazzlelink file found:
+        - If absolute path is valid but relative is wrong -> recompute relative
+        - If relative path is valid but absolute is wrong -> recompute absolute
+        - If both are valid -> no change needed
+        - If both are broken -> report as error
+
+        Args:
+            directory (str): Directory to scan
+            recursive (bool): Whether to scan recursively
+            only_broken (bool): Only rebase files where at least one path is broken
+
+        Returns:
+            dict: Report of dazzlelinks modified
+        """
+        import glob
+
+        result = {
+            'changed': [],
+            'unchanged': [],
+            'errors': []
+        }
+
+        # Find all .dazzlelink files
+        pattern = os.path.join(directory, '**', '*.dazzlelink') if recursive else os.path.join(directory, '*.dazzlelink')
+        dazzlelink_files = glob.glob(pattern, recursive=recursive)
+
+        if not dazzlelink_files:
+            print(f"No .dazzlelink files found in {directory}")
+            return result
+
+        print(f"Rebasing {len(dazzlelink_files)} dazzlelink file(s)...")
+
+        for dl_path in dazzlelink_files:
+            try:
+                with open(dl_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                link_section = data.get('link', {})
+                target_path = link_section.get('target_path', '')
+                target_reps = link_section.get('target_representations', {})
+                relative_path = target_reps.get('relative_path', '')
+
+                dl_dir = os.path.dirname(os.path.abspath(dl_path))
+
+                # Check which paths are valid
+                abs_valid = os.path.exists(target_path) if target_path else False
+                rel_resolved = os.path.normpath(os.path.join(dl_dir, relative_path)) if relative_path else ''
+                rel_valid = os.path.exists(rel_resolved) if rel_resolved else False
+
+                if abs_valid and rel_valid:
+                    # Both valid -- check if relative is accurate
+                    expected_relative = os.path.relpath(target_path, dl_dir)
+                    if relative_path == expected_relative:
+                        if only_broken:
+                            result['unchanged'].append({
+                                'file': dl_path,
+                                'reason': 'Both paths valid and in sync'
+                            })
+                            continue
+                        else:
+                            result['unchanged'].append({
+                                'file': dl_path,
+                                'reason': 'Both paths valid and in sync'
+                            })
+                            continue
+                    else:
+                        # Relative is stale -- recompute from absolute
+                        target_reps['relative_path'] = expected_relative
+                        data['link']['target_representations'] = target_reps
+                        with open(dl_path, 'w', encoding='utf-8') as f:
+                            json.dump(data, f, indent=2, default=str)
+                        result['changed'].append({
+                            'file': dl_path,
+                            'action': 'Recomputed relative from absolute',
+                            'old_relative': relative_path,
+                            'new_relative': expected_relative
+                        })
+
+                elif abs_valid and not rel_valid:
+                    # Absolute valid, relative broken -> recompute relative
+                    new_relative = os.path.relpath(target_path, dl_dir)
+                    target_reps['relative_path'] = new_relative
+                    data['link']['target_representations'] = target_reps
+                    with open(dl_path, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=2, default=str)
+                    result['changed'].append({
+                        'file': dl_path,
+                        'action': 'Recomputed relative from absolute',
+                        'old_relative': relative_path,
+                        'new_relative': new_relative
+                    })
+
+                elif not abs_valid and rel_valid:
+                    # Relative valid, absolute broken -> recompute absolute
+                    new_absolute = os.path.abspath(rel_resolved)
+                    data['link']['target_path'] = new_absolute
+                    # Also update target_representations original_path
+                    target_reps['original_path'] = new_absolute
+                    data['link']['target_representations'] = target_reps
+                    with open(dl_path, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=2, default=str)
+                    result['changed'].append({
+                        'file': dl_path,
+                        'action': 'Recomputed absolute from relative',
+                        'old_absolute': target_path,
+                        'new_absolute': new_absolute
+                    })
+
+                else:
+                    # Both broken
+                    result['errors'].append({
+                        'file': dl_path,
+                        'error': f'Both paths broken. Absolute: {target_path}, Relative: {relative_path}'
+                    })
+
+            except Exception as e:
+                result['errors'].append({
+                    'file': dl_path,
+                    'error': str(e)
+                })
+
+        # Print summary
+        print(f"Results: {len(result['changed'])} changed, {len(result['unchanged'])} unchanged, {len(result['errors'])} errors")
+
+        if result['changed']:
+            print("\nChanged:")
+            for info in result['changed']:
+                print(f"  {os.path.basename(info['file'])}")
+                print(f"    {info['action']}")
+                if 'new_relative' in info:
+                    print(f"    {info.get('old_relative', '')} -> {info['new_relative']}")
+                if 'new_absolute' in info:
+                    print(f"    {info.get('old_absolute', '')} -> {info['new_absolute']}")
+
+        if result['errors']:
+            print("\nErrors:")
+            for info in result['errors']:
+                print(f"  {os.path.basename(info['file'])}: {info['error']}")
+
+        return result
+
     def execute_dazzlelink(self, dazzlelink_path, mode=None, config_override=None):
         """
         Execute or open a dazzlelink file
@@ -3386,36 +3531,50 @@ class DazzleLink:
 			
 			# Use mode precedence:
             # 1. Command line mode override
-            # 2. Config override (if provided)
-            # 3. Dazzlelink file's embedded config
+            # 2. Dazzlelink file's embedded config
+            # 3. Config override (global/directory fallback)
             execute_mode = mode
-            if execute_mode is None and config_override is not None:
-                execute_mode = config_override.get("default_mode")
             if execute_mode is None:
                 execute_mode = default_mode
+            if execute_mode is None and config_override is not None:
+                execute_mode = config_override.get("default_mode")
             
             # Execute based on mode
             if execute_mode == "info":
                 # Show information about the dazzlelink
                 print("DazzleLink Information:")
-                print(f"Target: {target_path}")
-                
-                # Show original path if available
-                if "original_path" in link_data:
-                    print(f"Original Path: {link_data['original_path']}")
-                elif "link" in link_data and "original_path" in link_data["link"]:
-                    print(f"Original Path: {link_data['link']['original_path']}")
-                
-                # Show creation date if available
+
+                # Target path (what this dazzlelink opens)
+                print(f"\n Target:\n{target_path}")
+
+                # Relative path if available
+                target_reps = link_data.get("link", {}).get("target_representations", {})
+                rel_path = target_reps.get("relative_path")
+                if rel_path:
+                    print(f"\n Relative Path:\n{rel_path}")
+
+                # Creation date
                 if "creation_date" in link_data:
-                    print(f"Creation Date: {link_data['creation_date']}")
-                
-                # Show target information if available
-                if "target" in link_data:
+                    print(f"\n Created: {link_data['creation_date']}")
+
+                # Target details
+                target_exists = os.path.exists(target_path)
+                print(f"\n Target Details:")
+                print(f"  Exists: {'Yes' if target_exists else 'No'}")
+                if target_exists:
+                    actual_size = os.path.getsize(target_path)
+                    if actual_size < 1024:
+                        size_str = f"{actual_size} bytes"
+                    elif actual_size < 1024 * 1024:
+                        size_str = f"{actual_size/1024:.1f} KB"
+                    else:
+                        size_str = f"{actual_size/(1024*1024):.1f} MB"
+                    print(f"  Size: {size_str}")
+                    _, ext = os.path.splitext(target_path)
+                    print(f"  Type: {ext[1:].upper() if ext else 'Unknown'}")
+                elif "target" in link_data:
                     target_info = link_data["target"]
-                    print("\nTarget Details:")
                     print(f"  Type: {target_info.get('type', 'Unknown')}")
-                    print(f"  Exists: {'Yes' if target_info.get('exists', False) else 'No'}")
                     if target_info.get('size') is not None:
                         size = target_info['size']
                         if size < 1024:
@@ -3424,7 +3583,7 @@ class DazzleLink:
                             size_str = f"{size/1024:.1f} KB"
                         else:
                             size_str = f"{size/(1024*1024):.1f} MB"
-                        print(f"  Size: {size_str}")
+                        print(f"  Size: {size_str} (at creation)")
             
             elif execute_mode == "open" or execute_mode == "auto":
                 resolved_path = target_path
@@ -4231,9 +4390,16 @@ def main():
                 target_base=args.target_base,
                 only_broken=args.only_broken
             )
-            
-            # Return non-zero if errors found
-            if result['errors']:
+
+            # Also rebase .dazzlelink files
+            dl_result = dazzlelink.rebase_dazzlelinks(
+                args.directory,
+                recursive=recursive,
+                only_broken=args.only_broken
+            )
+
+            # Return non-zero if errors found in either
+            if result['errors'] or dl_result['errors']:
                 return 1
             
         return 0

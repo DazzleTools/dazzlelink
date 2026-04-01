@@ -11,7 +11,7 @@ import sys
 import logging
 from pathlib import Path
 
-__version__ = "0.6.1"
+from ._version import __version__, __app_name__
 
 # Set up package-level logger
 logger = logging.getLogger(__name__)

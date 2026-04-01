@@ -38,6 +38,11 @@ nosetests.xml
 .dmypy.json
 .pyre/
 
+# Private / local development
+private/
+local/
+CLAUDE.md
+
 # Logs and temp
 logs/
 *.log
