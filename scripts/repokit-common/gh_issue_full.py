@@ -226,7 +226,10 @@ def process_timeline(timeline: list) -> dict:
                 })
 
         elif event_type == "referenced":
-            commit_id = item.get("commit_id", "")[:7]
+            # `or ""` catches both missing key and explicit JSON null (which
+            # `dict.get(key, "")` returns as-is when the key is present with
+            # value None -- the default only applies to MISSING keys).
+            commit_id = (item.get("commit_id") or "")[:7]
             if commit_id:
                 events["commits"].append({
                     "sha": commit_id,

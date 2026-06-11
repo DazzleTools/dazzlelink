@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.7.1] - 2026-06-11
+
+### Changed
+- Relocate the git-repokit-common subtree to `scripts/repokit-common/` (disambiguating it from dazzlelink's own `scripts/` helpers) and update it to v0.2.7
+
 ## [0.7.0] - 2026-06-11
 
 ### Added

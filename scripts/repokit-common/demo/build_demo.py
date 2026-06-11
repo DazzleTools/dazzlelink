@@ -27,8 +27,8 @@ from pathlib import Path
 
 # -- Configuration --
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_TAPE = PROJECT_ROOT / "scripts" / "vhs" / "demo.tape"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_TAPE = PROJECT_ROOT / "scripts" / "demo" / "vhs" / "demo.tape"
 DEFAULT_OUTPUT = PROJECT_ROOT / "docs" / "demo.gif"
 
 # Common binary locations (checked in order)

@@ -11,8 +11,23 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 # PART 1: Update version.py
 # -------------------------
-SYNC_SCRIPT="$REPO_ROOT/scripts/sync-versions.py"
-if [ -f "$SYNC_SCRIPT" ] && command -v python >/dev/null 2>&1; then
+# Locate the version-sync script LAYOUT-AGNOSTICALLY. It may live flat at
+# scripts/sync-versions.py (this library's original assumption) OR nested at
+# scripts/repokit-common/sync-versions.py (the subtree layout most consumers
+# actually use). Resolve either, then fall back to a recursive find under
+# scripts/. (Hardcoding scripts/sync-versions.py silently no-ops the stamp for
+# every nested-layout consumer -- the bug this generalization fixes.)
+SYNC_SCRIPT=""
+for _cand in "$REPO_ROOT/scripts/repokit-common/sync-versions.py" "$REPO_ROOT/scripts/sync-versions.py"; do
+    [ -f "$_cand" ] && { SYNC_SCRIPT="$_cand"; break; }
+done
+[ -z "$SYNC_SCRIPT" ] && SYNC_SCRIPT="$(find "$REPO_ROOT/scripts" -name sync-versions.py -type f -print 2>/dev/null | head -n1)"
+UPDATE_SCRIPT=""
+for _cand in "$REPO_ROOT/scripts/repokit-common/update-version.sh" "$REPO_ROOT/scripts/update-version.sh"; do
+    [ -f "$_cand" ] && { UPDATE_SCRIPT="$_cand"; break; }
+done
+
+if [ -n "$SYNC_SCRIPT" ] && command -v python >/dev/null 2>&1; then
     # Run in auto mode to update version before commit
     UPDATE_OUTPUT=$(python "$SYNC_SCRIPT" --auto 2>&1)
     UPDATE_EXIT=$?
@@ -25,9 +40,9 @@ if [ -f "$SYNC_SCRIPT" ] && command -v python >/dev/null 2>&1; then
     else
         echo "⚠ Warning: Version update failed but continuing"
     fi
-elif [ -f "$REPO_ROOT/scripts/update-version.sh" ]; then
+elif [ -n "$UPDATE_SCRIPT" ]; then
     # Fallback to legacy bash script
-    "$REPO_ROOT/scripts/update-version.sh" --auto 2>&1 || echo "⚠ Warning: Version update failed but continuing"
+    "$UPDATE_SCRIPT" --auto 2>&1 || echo "⚠ Warning: Version update failed but continuing"
 fi
 
 # PART 2: Check for private content
@@ -48,9 +63,25 @@ case "$current_branch" in
         ;;
 esac
 
-# Check for private content using patterns specific to this project
+# Check for private content using patterns specific to this project.
+#
+# Allowlist support: if .repokit-allowlist exists in repo root, paths listed
+# there (one per line, # comments allowed, blank lines OK) bypass the private-
+# content regex check below. Intended for DELIBERATE move-aside artifacts that
+# carry signal-bearing extensions like .bak (preserved pre-pivot source: "this
+# is the old version, do not use this") which would otherwise trip the regex.
+ALLOWLIST_FILE="$REPO_ROOT/.repokit-allowlist"
+allowed() {
+    [ -f "$ALLOWLIST_FILE" ] || return 1
+    grep -v '^[[:space:]]*#' "$ALLOWLIST_FILE" | grep -v '^[[:space:]]*$' | grep -Fxq -- "$1"
+}
+
 has_private_content=0
 for file in $(git diff --cached --name-only); do
+    # Skip allowlisted paths
+    if allowed "$file"; then
+        continue
+    fi
     # Check against private content patterns
     if echo "$file" | grep -q -E "^.*/__private__.*|^.*/private_.*|^.*~$|\.backup$|\.bak$|\.log$|\.tmp$|^\.env.*|^\.env\.local$|^\.env\.private$|^convos/|^credentials/|^logs/|^nul$|^private/|^revisions/|^secrets/|^test-runs/|^test_runs/"; then
         if [ $has_private_content -eq 0 ]; then

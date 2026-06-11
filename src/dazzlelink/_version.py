@@ -8,20 +8,20 @@ with build metadata (branch, build number, date, commit hash).
 Format: MAJOR.MINOR.PATCH[-PHASE]_BRANCH_BUILD-YYYYMMDD-COMMITHASH
 Example: 0.7.0_main_1-20260331-a1b2c3d4
 
-To sync versions: python scripts/sync-versions.py
-To bump version: python scripts/sync-versions.py --bump patch
+To sync versions: python scripts/repokit-common/sync-versions.py
+To bump version: python scripts/repokit-common/sync-versions.py --bump patch
 """
 
 # Version components - edit these for version bumps
 MAJOR = 0
 MINOR = 7
-PATCH = 0
+PATCH = 1
 PHASE = ""  # Per-MINOR feature set: None, "alpha", "beta", "rc1", etc.
 PRE_RELEASE_NUM = 1  # PEP 440 pre-release number (e.g., a1, b2)
 PROJECT_PHASE = "alpha"  # Project-wide: "prealpha", "alpha", "beta", "stable"
 
 # Auto-updated by git hooks - do not edit manually
-__version__ = "0.7.0_main_39-20260611-9f8129e5"
+__version__ = "0.7.1_main_40-20260611-6b12d042"
 __app_name__ = "dazzlelink"
 
 

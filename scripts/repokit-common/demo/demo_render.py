@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 # Add project root to path so we can import the render module
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 # TODO: Replace with your project's render imports
 # from your_package.output.render import render_diagnosis, render_history

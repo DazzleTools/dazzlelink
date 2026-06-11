@@ -20,13 +20,9 @@ bash scripts/install-hooks.sh
 Update to latest:
 
 ```bash
-git subtree pull --prefix=scripts repokit-common main --squash
-```
-
-Push local improvements back upstream:
-
-```bash
-git subtree push --prefix=scripts repokit-common main
+bash scripts/update-common.sh            # pull latest
+bash scripts/update-common.sh --check    # check if behind upstream
+bash scripts/update-common.sh --push     # push local changes upstream
 ```
 
 ## What's Included
@@ -37,7 +33,7 @@ git subtree push --prefix=scripts repokit-common main
 - **pre-push** -- Python syntax check, pytest, debug statement detection
 
 ### Version Management
-- **sync-versions.py** -- Single source of truth for version bumping with git metadata (branch, build count, date, hash)
+- **sync-versions.py** -- Single source of truth for version bumping with git metadata. See [docs/sync-versions.md](docs/sync-versions.md) for full reference.
 - **update-version.sh** -- Legacy bash version updater (deprecated; use sync-versions.py)
 
 ### GitHub Tools
@@ -48,10 +44,10 @@ git subtree push --prefix=scripts repokit-common main
 - **search_sesslog.py** -- Search Claude Code JSONL session transcripts
 - **extract_tool_result.py** -- Find and extract tool results from session data
 
-### CLI Demo Recording
-- **build_demo.py** -- Build CLI demo recordings
-- **demo_render.py** -- Render demo recordings
-- **vhs/** -- VHS tape templates for CLI demo recording
+### CLI Demo Recording (`demo/`)
+- **demo/build_demo.py** -- Build CLI demo recordings
+- **demo/demo_render.py** -- Render demo recordings
+- **demo/vhs/** -- VHS tape templates for CLI demo recording
 
 ### Utilities
 - **install-hooks.sh** -- Install git hooks from this submodule into `.git/hooks/`
@@ -68,8 +64,24 @@ version-source = "mypackage/_version.py"
 changelog = "CHANGELOG.md"
 repo-url = "https://github.com/DazzleTools/my-project"
 tag-prefix = "v"
+tag-format = "pep440"
 private-patterns = ["private/", "local/", ".env"]
 ```
+
+### Tag Format
+
+The `tag-format` option controls how git tags are generated for CHANGELOG compare links and `--check` validation:
+
+| Value | Example Tag | When to Use |
+|-------|-------------|-------------|
+| `"pep440"` (default) | `v0.1.3a1` | Projects using PEP 440 tags for PyPI compatibility |
+| `"human"` | `v0.1.3-alpha` | Projects using human-readable tags matching CHANGELOG headers |
+
+For stable releases (no phase suffix), both formats produce identical tags (`v0.5.0`). The difference only matters for pre-release versions (alpha, beta, rc).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history. Current version: see [`VERSION`](VERSION).
 
 ## License
 

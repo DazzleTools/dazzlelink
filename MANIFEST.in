@@ -10,12 +10,7 @@ recursive-include docs *
 recursive-include examples *
 recursive-include tests *
 
-# Exclude repokit-common subtree internals from sdist
-prune scripts/.github
-prune scripts/tests
-prune scripts/docs
-exclude scripts/.gitignore
-exclude scripts/.repokit.json
-exclude scripts/pyproject.toml.*
+# Exclude the repokit-common subtree from sdist (dev tooling, not shipped)
+prune scripts/repokit-common
 
 global-exclude *.py[cod] __pycache__ *.so *.dylib .DS_Store

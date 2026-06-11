@@ -34,15 +34,15 @@ Note: If you already have files in `scripts/`, move them out first, do the subtr
 
 ## Customize (as needed)
 
-- [ ] **VHS demo tapes** (`scripts/vhs/*.tape`): Replace placeholder CLI commands with your actual command name
-- [ ] **demo_render.py**: Rewrite with your project's output format (the existing content is a template/example)
+- [ ] **VHS demo tapes** (`scripts/demo/vhs/*.tape`): Replace placeholder CLI commands with your actual command name
+- [ ] **demo_render.py** (`scripts/demo/`): Rewrite with your project's output format (the existing content is a template/example)
 - [ ] **Pre-push hook**: Verify the auto-detected package directory is correct for your project
 
 ## Optional
 
 - [ ] **search_sesslog.py**: Useful if you use Claude Code -- searches session transcripts
 - [ ] **extract_tool_result.py**: Useful if you use Claude Code -- extracts tool results from sessions
-- [ ] **build_demo.py**: Run after customizing VHS tapes to generate demo GIFs
+- [ ] **build_demo.py** (`scripts/demo/`): Run after customizing VHS tapes to generate demo GIFs
 
 ## Notes
 
