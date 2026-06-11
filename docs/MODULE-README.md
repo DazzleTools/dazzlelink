@@ -88,4 +88,4 @@ This modular structure is designed to facilitate future integration with UNC-lib
 
 ## Compatibility with Monolithic Version
 
-The monolithic version of Dazzlelink (`dazzlelink.py`) will continue to be maintained alongside this modular version for an extended period to ensure backward compatibility for users who prefer to use it directly without installation.
+The monolithic version of Dazzlelink now lives at `legacy/dazzlelink_monolith.py` and is deprecated in favor of the installable package (`pip install -e .`, then `dazzlelink` or `python -m dazzlelink`). It remains in the repository as a fallback during the deprecation window but no longer receives new features (see issue #18 for the port status).

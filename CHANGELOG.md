@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
-## [0.7.0] - 2026-03-31
+## [0.7.0] - 2026-06-11
 
 ### Added
 - Relative path support for portable dazzlelinks across synced machines (Refs #13)
@@ -14,8 +14,20 @@ All notable changes to this project will be documented in this file. This projec
 - git-repokit-common subtree at `scripts/` for shared hooks and tools
 - File association scripts for Windows `.dazzlelink` extension
 
+### Changed
+- **Layout**: package moved from `dazzlelink/` to `src/dazzlelink/` (PyPA src layout); editable installs must be re-run (`pip install -e .`)
+- Monolith `dazzlelink.py` moved to `legacy/dazzlelink_monolith.py` and deprecated in favor of `python -m dazzlelink` (Refs #18)
+- `pyproject.toml` is now the single source of packaging truth: `requires-python>=3.10`, pywin32 as a core dependency on Windows, license `GPL-3.0-or-later`, URLs point to the DazzleTools org (Refs #2)
+- File association scripts prefer the pip-installed module, falling back to the legacy monolith
+- CI matrix updated to Python 3.10/3.12/3.13
+
 ### Fixed
+- `dazzlelink.operations` subpackage was missing from built wheels (`packages.find` with `where=["src"]`); installs from the previous packaging config would fail at import
+- File association scripts' monolith fallback pointed at the removed root `dazzlelink.py`
 - Renamed `pyproject-toml.py` to `pyproject.toml` for PyPI compatibility
+
+### Removed
+- `setup.py` (broken version read), `setup.cfg` (flake8 config migrated to pyproject), `requirements.txt` (deps live in pyproject)
 
 ## [0.6.0] - 2025-03-28
 

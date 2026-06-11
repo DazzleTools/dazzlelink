@@ -26,7 +26,9 @@ build/
 # Testing / coverage
 .pytest_cache/
 .tox/
+.coverage
 coverage.*
+build-test-dist/
 .cache/
 nosetests.xml
 *.cover

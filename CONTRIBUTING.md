@@ -39,12 +39,12 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
 ### ⚙️ CLI Version
 
 1. Clone the repository
-2. Install dependencies:
+2. Install in editable mode with dev dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -e ".[dev]"
    ```
-3. Make changes to `dazzlelink.py`
-4. Run tests or scripts as needed
+3. Make changes to the package under `src/dazzlelink/`
+4. Run tests (`python -m pytest tests/`) or scripts as needed
 5. Ensure code works on your target OS
 
 ## Coding Guidelines

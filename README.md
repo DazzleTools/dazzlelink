@@ -4,10 +4,12 @@
 
 Dazzlelink is a cross-platform tool that exports, imports, and manages symbolic links, with a particular focus on handling network paths and preserving links across different systems. It solves the common challenge of maintaining and backing-up symbolic links when moving between Windows, Linux, macOS, and BSD environments.
 
-![GitHub Workflow Status](https://github.com/djdarcy/dazzlelink/actions/workflows/python.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-0.6.1-blue)
-![Python Version](https://img.shields.io/badge/python-%3E%3D3.8-brightgreen)
-![License](https://img.shields.io/badge/license-GPL--3.0-blue)
+[![PyPI](https://img.shields.io/pypi/v/dazzlelink?color=green)](https://pypi.org/project/dazzlelink/)
+[![Release Date](https://img.shields.io/github/release-date/DazzleTools/dazzlelink?color=green)](https://github.com/DazzleTools/dazzlelink/releases)
+[![CI](https://github.com/DazzleTools/dazzlelink/actions/workflows/python.yml/badge.svg)](https://github.com/DazzleTools/dazzlelink/actions/workflows/python.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-green.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20BSD-lightgrey.svg)](https://github.com/DazzleTools/dazzlelink)
 
 ![Dazzlelink example workflow](examples/workflow.png)
 
@@ -79,7 +81,7 @@ dazzlelink export path/to/symlink
 
 # Export all symlinks in a directory to .dazzlelink files, that open using the default handler,
 # and remove the original symlink
-dazzlelink.py convert --remove-originals --mode open --config-level file .
+dazzlelink convert --remove-originals --mode open --config-level file .
 ```
 
 ### Import a symbolic link

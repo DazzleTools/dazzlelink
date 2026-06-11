@@ -54,38 +54,53 @@ if not exist "%PYTHONW_PATH%" (
     echo Found pythonw at: %PYTHONW_PATH%
 )
 
-:: Determine script location
-:: Prefer the monolith dazzlelink.py (most reliable, always up to date)
+:: Determine dazzlelink invocation method
+:: Priority: 1) pip-installed module  2) monolith dazzlelink.py (legacy)
 set SCRIPT_DIR=%~dp0
-set DAZZLELINK_SCRIPT=%SCRIPT_DIR%..\dazzlelink.py
 
-if not exist "%DAZZLELINK_SCRIPT%" (
-    set DAZZLELINK_SCRIPT=%SCRIPT_DIR%dazzlelink.py
-)
-
-if exist "%DAZZLELINK_SCRIPT%" (
-    echo Using dazzlelink script: %DAZZLELINK_SCRIPT%
-    set "OPEN_CMD="%PYTHONW_PATH%" "%DAZZLELINK_SCRIPT%" execute "%%1""
-    set "INFO_CMD=cmd.exe /c ""%PYTHON_PATH%" "%DAZZLELINK_SCRIPT%" execute --mode info "%%1" ^& pause""
-    set "IMPORT_CMD="%PYTHON_PATH%" "%DAZZLELINK_SCRIPT%" import "%%1""
-    goto :register
-)
-
-:: Fall back to pip-installed package
-where dazzlelink >nul 2>&1
+:: Check if dazzlelink is importable as a Python module (pip install / editable install)
+"%PYTHON_PATH%" -c "import dazzlelink" >nul 2>&1
 if %errorLevel% equ 0 (
-    echo Using installed dazzlelink package
+    echo Using installed dazzlelink package (python -m dazzlelink)
     set "OPEN_CMD="%PYTHONW_PATH%" -m dazzlelink execute "%%1""
     set "INFO_CMD=cmd.exe /c ""%PYTHON_PATH%" -m dazzlelink execute --mode info "%%1" ^& pause""
     set "IMPORT_CMD="%PYTHON_PATH%" -m dazzlelink import "%%1""
     goto :register
 )
 
+:: Check if dazzlelink.exe exists on PATH (pip console_scripts entry point)
+where dazzlelink >nul 2>&1
+if %errorLevel% equ 0 (
+    echo Using dazzlelink entry point (where dazzlelink)
+    set "OPEN_CMD="%PYTHONW_PATH%" -m dazzlelink execute "%%1""
+    set "INFO_CMD=cmd.exe /c ""%PYTHON_PATH%" -m dazzlelink execute --mode info "%%1" ^& pause""
+    set "IMPORT_CMD="%PYTHON_PATH%" -m dazzlelink import "%%1""
+    goto :register
+)
+
+:: Fall back to the legacy monolith (may not exist)
+set DAZZLELINK_SCRIPT=%SCRIPT_DIR%..\legacy\dazzlelink_monolith.py
+if not exist "%DAZZLELINK_SCRIPT%" (
+    set DAZZLELINK_SCRIPT=%SCRIPT_DIR%..\dazzlelink.py
+)
+if not exist "%DAZZLELINK_SCRIPT%" (
+    set DAZZLELINK_SCRIPT=%SCRIPT_DIR%dazzlelink.py
+)
+
+if exist "%DAZZLELINK_SCRIPT%" (
+    echo Using legacy monolith: %DAZZLELINK_SCRIPT%
+    set "OPEN_CMD="%PYTHONW_PATH%" "%DAZZLELINK_SCRIPT%" execute "%%1""
+    set "INFO_CMD=cmd.exe /c ""%PYTHON_PATH%" "%DAZZLELINK_SCRIPT%" execute --mode info "%%1" ^& pause""
+    set "IMPORT_CMD="%PYTHON_PATH%" "%DAZZLELINK_SCRIPT%" import "%%1""
+    goto :register
+)
+
 echo.
-echo dazzlelink.py not found. Checked:
-echo   %SCRIPT_DIR%..\dazzlelink.py
-echo   %SCRIPT_DIR%dazzlelink.py
-echo   pip package: not installed
+echo dazzlelink not found. Checked:
+echo   pip package: not importable
+echo   %SCRIPT_DIR%..\legacy\dazzlelink_monolith.py: not found
+echo   %SCRIPT_DIR%..\dazzlelink.py: not found
+echo   %SCRIPT_DIR%dazzlelink.py: not found
 echo.
 set /p DAZZLELINK_SCRIPT=Please enter the full path to dazzlelink.py:
 
@@ -96,7 +111,7 @@ if not exist "!DAZZLELINK_SCRIPT!" (
 )
 
 echo Using dazzlelink script: %DAZZLELINK_SCRIPT%
-set "OPEN_CMD="%PYTHON_PATH%" "%DAZZLELINK_SCRIPT%" execute "%%1""
+set "OPEN_CMD="%PYTHONW_PATH%" "%DAZZLELINK_SCRIPT%" execute "%%1""
 set "INFO_CMD=cmd.exe /c ""%PYTHON_PATH%" "%DAZZLELINK_SCRIPT%" execute --mode info "%%1" ^& pause""
 set "IMPORT_CMD="%PYTHON_PATH%" "%DAZZLELINK_SCRIPT%" import "%%1""
 

@@ -9,23 +9,46 @@ if (-not $pythonPath) {
 }
 Write-Host "Found Python at: $pythonPath" -ForegroundColor Green
 
-# Find dazzlelink.py -- check parent directory first (scripts/ is a subdirectory)
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$dazzleLinkScript = Join-Path (Split-Path -Parent $scriptDir) "dazzlelink.py"
+# Determine dazzlelink invocation method
+# Priority: 1) pip-installed module  2) monolith dazzlelink.py (legacy)
 
-if (-not (Test-Path $dazzleLinkScript)) {
-    $dazzleLinkScript = Join-Path $scriptDir "dazzlelink.py"
+# Find pythonw.exe for windowless execution (no console flash on double-click)
+$pythonwPath = $pythonPath -replace 'python\.exe$', 'pythonw.exe'
+if (-not (Test-Path $pythonwPath)) {
+    $pythonwPath = $pythonPath
+    Write-Host "pythonw.exe not found, using python.exe (console window will flash)" -ForegroundColor Yellow
+} else {
+    Write-Host "Found pythonw at: $pythonwPath" -ForegroundColor Green
 }
 
-if (-not (Test-Path $dazzleLinkScript)) {
-    # Fall back to python -m dazzlelink
-    Write-Host "dazzlelink.py not found, using python -m dazzlelink" -ForegroundColor Yellow
-    $openCmd = "`"$pythonPath`" -m dazzlelink execute `"%1`""
+# Check if dazzlelink is importable as a Python module
+$moduleCheck = & $pythonPath -c "import dazzlelink" 2>&1
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Using installed dazzlelink package (python -m dazzlelink)" -ForegroundColor Green
+    $openCmd = "`"$pythonwPath`" -m dazzlelink execute `"%1`""
     $infoCmd = "`"$pythonPath`" -m dazzlelink execute --mode info `"%1`""
     $importCmd = "`"$pythonPath`" -m dazzlelink import `"%1`""
 } else {
-    Write-Host "Using dazzlelink script: $dazzleLinkScript" -ForegroundColor Green
-    $openCmd = "`"$pythonPath`" `"$dazzleLinkScript`" execute `"%1`""
+    # Fall back to the legacy monolith (may not exist)
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $repoRoot = Split-Path -Parent $scriptDir
+    $dazzleLinkScript = Join-Path $repoRoot "legacy\dazzlelink_monolith.py"
+
+    if (-not (Test-Path $dazzleLinkScript)) {
+        $dazzleLinkScript = Join-Path $repoRoot "dazzlelink.py"
+    }
+
+    if (-not (Test-Path $dazzleLinkScript)) {
+        $dazzleLinkScript = Join-Path $scriptDir "dazzlelink.py"
+    }
+
+    if (-not (Test-Path $dazzleLinkScript)) {
+        Write-Host "dazzlelink not found! Neither pip module nor dazzlelink.py available." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "Using legacy monolith: $dazzleLinkScript" -ForegroundColor Yellow
+    $openCmd = "`"$pythonwPath`" `"$dazzleLinkScript`" execute `"%1`""
     $infoCmd = "`"$pythonPath`" `"$dazzleLinkScript`" execute --mode info `"%1`""
     $importCmd = "`"$pythonPath`" `"$dazzleLinkScript`" import `"%1`""
 }

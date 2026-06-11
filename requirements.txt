@@ -1,5 +1,0 @@
-# Cross-platform packages here (if any)
-
-# Windows-only
-pywin32; platform_system == "Windows"
-

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,18 +10,17 @@ readme = "README.md"
 authors = [
     {name = "Dustin Darcy", email = "dustindarcy@gmail.com"}
 ]
-license = {text = "GPL-3.0"}
+license = {text = "GPL-3.0-or-later"}
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
@@ -29,59 +28,61 @@ classifiers = [
     "Topic :: System :: Filesystems",
     "Topic :: Utilities",
 ]
-keywords = ["symlinks", "symbolic links", "network paths", "UNC paths", "file management"]
-requires-python = ">=3.6"
+keywords = ["symlinks", "symbolic links", "network paths", "UNC paths", "file management", "dazzlelink"]
+requires-python = ">=3.10"
 dependencies = [
-    'pathlib;python_version<"3.4"',
+    "pywin32>=223; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
-windows = [
-    "pywin32>=223",
-]
 dev = [
-    "pytest>=6.0.0",
-    "pytest-cov>=2.10.0",
-    "flake8>=3.8.0",
-    "mypy>=0.800",
-    "black>=20.8b1",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "flake8>=5.0.0",
+    "mypy>=0.900",
 ]
 docs = [
-    "sphinx>=3.0.0",
-    "sphinx-rtd-theme>=0.5.0",
+    "sphinx>=4.0.0",
+    "sphinx-rtd-theme>=1.0.0",
 ]
 
 [project.urls]
-"Bug Reports" = "https://github.com/djdarcy/dazzlelink/issues"
-"Source" = "https://github.com/djdarcy/dazzlelink"
-"Documentation" = "https://github.com/djdarcy/dazzlelink#readme"
+Homepage = "https://github.com/DazzleTools/dazzlelink"
+Repository = "https://github.com/DazzleTools/dazzlelink"
+Issues = "https://github.com/DazzleTools/dazzlelink/issues"
+Documentation = "https://github.com/DazzleTools/dazzlelink#readme"
 
 [project.scripts]
 dazzlelink = "dazzlelink.cli:main"
 
-[tool.setuptools]
-packages = ["dazzlelink"]
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["dazzlelink", "dazzlelink.*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "dazzlelink._version.PIP_VERSION"}
 
+[tool.flake8]
+max-line-length = 127
+max-complexity = 10
+
 [tool.black]
 line-length = 100
-target-version = ['py36', 'py37', 'py38', 'py39']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.isort]
 profile = "black"
 line_length = 100
 
 [tool.mypy]
-python_version = "3.6"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
 [tool.repokit-common]
-version-source = "dazzlelink/_version.py"
+version-source = "src/dazzlelink/_version.py"
 changelog = "CHANGELOG.md"
 repo-url = "https://github.com/DazzleTools/dazzlelink"
 tag-prefix = "v"
