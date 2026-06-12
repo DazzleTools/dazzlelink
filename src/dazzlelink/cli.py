@@ -25,6 +25,8 @@ from . import (
     scan,
     check,
     rebase,
+    batch_copy,
+    update_config_batch,
     configure_logging,
     enable_verbose_logging,
     DazzleLinkException
@@ -179,7 +181,41 @@ For more information, see https://github.com/djdarcy/dazzlelink
                             help='Replace base path (format: old_prefix:new_prefix)')
     rebase_parser.add_argument('--only-broken', '-b', action='store_true',
                             help='Only rebase broken links')
-    
+
+    # Copy command
+    copy_parser = subparsers.add_parser('copy', help='Copy symlinks to another location')
+    copy_parser.add_argument('links', nargs='+', help='Links to copy (files or directories)')
+    copy_parser.add_argument('destination', help='Destination directory')
+    copy_parser.add_argument('--preserve-structure', '-p', action='store_true',
+                            help='Preserve directory structure')
+    copy_parser.add_argument('--base-dir', '-b', help='Base directory for structure preservation')
+    copy_parser.add_argument('--relative', '-r', action='store_true',
+                            help='Convert to relative links in destination')
+    copy_parser.add_argument('--absolute', '-a', action='store_true',
+                            help='Convert to absolute links in destination')
+    copy_parser.add_argument('--no-verify', '-n', action='store_true',
+                            help='Skip verification of links after copying')
+    copy_parser.add_argument('--config-level', choices=['global', 'directory', 'file'],
+                           default='file', help='Configuration level to use')
+
+    # Update-config command
+    update_config_parser = subparsers.add_parser('update-config',
+                                               help='Update configuration for multiple dazzlelinks')
+    update_config_parser.add_argument('path', help='Path to file or directory to update')
+    update_config_parser.add_argument('--mode', '-m', choices=['info', 'open', 'auto'],
+                                    help='New default execution mode')
+    update_config_parser.add_argument('--pattern', '-p', default='*.dazzlelink',
+                                    help='File pattern to match (default: *.dazzlelink)')
+    update_config_parser.add_argument('--recursive', '-r', action='store_true',
+                                    help='Search subdirectories recursively')
+    update_config_parser.add_argument('--dry-run', '-d', action='store_true',
+                                    help='Show what would be changed without making changes')
+    update_config_parser.add_argument('--config-level', choices=['global', 'directory', 'file'],
+                                    default='file',
+                                    help='Configuration level to save changes to (default: file)')
+    update_config_parser.add_argument('--make-executable', action='store_true',
+                                    help='Make updated dazzlelinks executable')
+
     return parser
 
 def main(args=None) -> int:
@@ -521,7 +557,67 @@ def main(args=None) -> int:
             # Return non-zero if errors found
             if result['errors']:
                 return 1
-            
+
+        elif parsed_args.command == 'copy':
+            # Determine relative/absolute preference
+            relative_links = None
+            if parsed_args.relative and parsed_args.absolute:
+                print("ERROR: Cannot specify both --relative and --absolute")
+                return 1
+            elif parsed_args.relative:
+                relative_links = True
+            elif parsed_args.absolute:
+                relative_links = False
+
+            # Expand any directories into the symlinks they contain
+            all_links = []
+            for link_path in parsed_args.links:
+                if os.path.isdir(link_path):
+                    all_links.extend(scan(link_path, recursive=True))
+                elif os.path.islink(link_path):
+                    all_links.append(link_path)
+                else:
+                    print(f"WARNING: {link_path} is not a symlink or directory, skipping")
+
+            if not all_links:
+                print("ERROR: No symlinks found to copy")
+                return 1
+
+            copied_links = batch_copy(
+                all_links,
+                parsed_args.destination,
+                preserve_structure=parsed_args.preserve_structure,
+                base_dir=parsed_args.base_dir,
+                relative_links=relative_links,
+                verify=not parsed_args.no_verify
+            )
+            print(f"Copied {len(copied_links)} symlinks to {parsed_args.destination}")
+
+        elif parsed_args.command == 'update-config':
+            config_level = parsed_args.config_level if hasattr(parsed_args, 'config_level') else 'file'
+
+            result = update_config_batch(
+                parsed_args.path,
+                mode=parsed_args.mode,
+                pattern=parsed_args.pattern,
+                recursive=parsed_args.recursive,
+                dry_run=parsed_args.dry_run,
+                config_level=config_level,
+                make_executable=parsed_args.make_executable
+            )
+
+            if parsed_args.dry_run:
+                print("Dry run - no changes were made")
+            print("Results:")
+            print(f"  {len(result['updated'])} files would be updated" if parsed_args.dry_run
+                  else f"  {len(result['updated'])} files updated")
+            print(f"  {len(result['skipped'])} files skipped (no changes needed)")
+            print(f"  {len(result['errors'])} errors encountered")
+            if result['errors']:
+                print("\nErrors:")
+                for error in result['errors']:
+                    print(f"  {error['path']}: {error['error']}")
+
         return 0
         
     except DazzleLinkException as e:

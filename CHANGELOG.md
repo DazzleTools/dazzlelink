@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.7.4] - 2026-06-12
+
+### Added
+- `copy` command: copy symlinks to another location -- expands directories into their symlinks, preserves structure (`--preserve-structure`/`--base-dir`), converts relative/absolute (`--relative`/`--absolute`), verifies (`--no-verify`). Restores the monolith command the modular CLI never exposed (Refs #18).
+- `update-config` command: batch-edit the embedded config of many `.dazzlelink` files (`--mode`, `--pattern`, `--recursive`, `--dry-run`, `--make-executable`, `--config-level`). Likewise restored (Refs #18).
+
+### Fixed
+- `python -m dazzlelink` now propagates the command's exit code. The `__main__` entry called `main()` without `sys.exit()`, so every invocation exited 0 -- even on error -- which hid failures from scripts and CI.
+- The top-level package now re-exports `update_config_batch` (previously only in `operations/`); an internal import depended on it.
+
 ## [0.7.3] - 2026-06-12
 
 ### Fixed

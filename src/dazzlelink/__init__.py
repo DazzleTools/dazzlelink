@@ -47,6 +47,7 @@ from .operations import (
     convert_directory,
     mirror_directory,
     batch_copy,
+    update_config_batch,
     check_links,
     rebase_links,
     recreate_link,
