@@ -882,7 +882,7 @@ def update_config_batch(path, mode=None, pattern="*.dazzlelink", recursive=False
                     continue
                     
                 # Load the dazzlelink
-                with open(dazzlelink_path, 'r', encoding='utf-8') as f:
+                with open(dazzlelink_path, 'r', encoding='utf-8-sig') as f:
                     # Try to detect if it's a script or JSON format
                     content = f.read()
                     
@@ -1019,7 +1019,7 @@ def rebase_dazzlelinks(directory, recursive=True, only_broken=False):
 
     for dl_path in dazzlelink_files:
         try:
-            with open(dl_path, 'r', encoding='utf-8') as f:
+            with open(dl_path, 'r', encoding='utf-8-sig') as f:
                 data = json.load(f)
 
             link_section = data.get('link', {})

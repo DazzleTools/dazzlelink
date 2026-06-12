@@ -349,7 +349,7 @@ class DazzleLinkData:
             ValueError: If the file is not a valid dazzlelink file.
         """
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8-sig') as f:
                 try:
                     data = json.load(f)
                     return cls(data)

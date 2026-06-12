@@ -3836,6 +3836,16 @@ class DazzleLink:
 
 def main():
     """Main entry point for the dazzlelink tool"""
+    # This monolith is deprecated in favor of the installable package. It is kept
+    # as a fallback during the transition but is frozen -- new features and fixes
+    # land in the src/dazzlelink package, not here.
+    print(
+        "DEPRECATION: this is the legacy monolithic dazzlelink (frozen -- no new "
+        "features or fixes).\n"
+        "Use the package instead: pip install -e .  then  dazzlelink <command>  "
+        "(or  python -m dazzlelink <command>).\n",
+        file=sys.stderr,
+    )
     parser = argparse.ArgumentParser(
         description='Dazzlelink - Symbolic Link Preservation Tool',
         formatter_class=argparse.RawDescriptionHelpFormatter,

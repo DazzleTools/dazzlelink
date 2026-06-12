@@ -14,14 +14,14 @@ To bump version: python scripts/repokit-common/sync-versions.py --bump patch
 
 # Version components - edit these for version bumps
 MAJOR = 0
-MINOR = 7
-PATCH = 5
+MINOR = 8
+PATCH = 0
 PHASE = ""  # Per-MINOR feature set: None, "alpha", "beta", "rc1", etc.
 PRE_RELEASE_NUM = 1  # PEP 440 pre-release number (e.g., a1, b2)
 PROJECT_PHASE = "alpha"  # Project-wide: "prealpha", "alpha", "beta", "stable"
 
 # Auto-updated by git hooks - do not edit manually
-__version__ = "0.7.5_main_44-20260612-8f5a0872"
+__version__ = "0.8.0_main_45-20260612-55c76b11"
 __app_name__ = "dazzlelink"
 
 

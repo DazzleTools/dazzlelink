@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.8.0] - 2026-06-12
+
+**Milestone:** the installable `dazzlelink` package now has full capability parity with the legacy monolith (completed across 0.7.2-0.7.5), the monolith is deprecated, and the package is validated for PyPI.
+
+### Changed
+- The legacy monolith (`legacy/dazzlelink_monolith.py`) prints a deprecation notice on invocation and is frozen -- all features and fixes land in the `dazzlelink` package, not the monolith (Refs #18).
+- `.dazzlelink` and config-file reads now tolerate a leading UTF-8 BOM (`utf-8-sig`), so files hand-edited in BOM-writing tools (e.g. PowerShell `Set-Content -Encoding UTF8`) parse correctly instead of erroring.
+
+### Notes
+- Verified PyPI-ready: `python -m build` + `twine check` pass for both the wheel and sdist; the wheel includes the `dazzlelink.operations` subpackage. CLI subprocess test suite expanded (40 tests total).
+
 ## [0.7.5] - 2026-06-12
 
 ### Added

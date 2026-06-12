@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Any, Dict, Tuple
 
+from ._version import get_base_version
 from . import (
     __version__,
     DazzleLinkConfig,
@@ -54,7 +55,11 @@ For more information, see https://github.com/djdarcy/dazzlelink
 """
     )
     
-    parser.add_argument('--version', '-V', action='version', version=f'dazzlelink {__version__}')
+    # Lead with the clean release version (matches the PyPI/pip-installed version),
+    # but keep the full git-stamped build string in parentheses for bug-report
+    # traceability (branch, build number, date, commit).
+    parser.add_argument('--version', '-V', action='version',
+                        version=f'dazzlelink {get_base_version()} ({__version__})')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
     
     subparsers = parser.add_subparsers(dest='command', help='Commands')

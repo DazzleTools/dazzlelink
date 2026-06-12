@@ -89,3 +89,50 @@ def test_copy_requires_links_and_destination():
     # devnull is not a symlink/dir -> "No symlinks found to copy" path, rc 1.
     assert r.returncode == 1
     assert "No symlinks found" in r.stdout or "not a symlink" in r.stdout
+
+
+def test_create_then_execute_info_roundtrip(tmp_path):
+    """create a dazzlelink, then `execute --mode info` reports its target."""
+    target = tmp_path / "t.txt"
+    target.write_text("hello")
+    out = tmp_path / "r.dazzlelink"
+    r = _dz("create", str(target), str(out))
+    assert r.returncode == 0, r.stderr
+    assert out.exists()
+    r2 = _dz("execute", "--mode", "info", str(out))
+    assert r2.returncode == 0, r2.stderr
+    assert "DazzleLink Information" in r2.stdout
+
+
+def test_bom_prefixed_dazzlelink_is_tolerated(tmp_path):
+    """A .dazzlelink saved with a UTF-8 BOM (e.g. PowerShell Set-Content -Encoding
+    UTF8) must still parse -- reads use utf-8-sig."""
+    sys.path.insert(0, os.path.join(REPO, "src"))
+    import contextlib
+    import io
+    from dazzlelink.config import DazzleLinkConfig
+    from dazzlelink.operations.core import DazzleLink
+    from dazzlelink.operations.recreate import execute_dazzlelink
+
+    target = tmp_path / "t.txt"
+    target.write_text("x")
+    out = tmp_path / "b.dazzlelink"
+    DazzleLink(DazzleLinkConfig()).serialize_link(
+        str(target), output_path=str(out), make_executable=False, require_symlink=False)
+    # Re-write the same content but with a leading UTF-8 BOM.
+    out.write_text(out.read_text(encoding="utf-8"), encoding="utf-8-sig")
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        execute_dazzlelink(str(out), mode="info")
+    assert "DazzleLink Information" in buf.getvalue()
+
+
+def test_monolith_prints_deprecation_but_still_works():
+    """The legacy monolith warns it is deprecated (stderr) yet still functions."""
+    r = subprocess.run(
+        [sys.executable, "legacy/dazzlelink_monolith.py", "--help"],
+        capture_output=True, text=True, cwd=REPO,
+    )
+    assert "DEPRECATION" in r.stderr
+    assert "usage" in r.stdout.lower()

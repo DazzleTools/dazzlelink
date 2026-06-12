@@ -410,7 +410,7 @@ def make_dazzlelink_executable(dazzlelink_path, link_data=None):
     """
     if link_data is None:
         try:
-            with open(dazzlelink_path, 'r', encoding='utf-8') as f:
+            with open(dazzlelink_path, 'r', encoding='utf-8-sig') as f:
                 link_data = json.load(f)
         except json.JSONDecodeError as e:
             # File is already executable or corrupted

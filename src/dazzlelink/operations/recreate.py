@@ -150,7 +150,7 @@ def execute_dazzlelink(dazzlelink_path, mode=None, config_override=None):
     """
     try:
         # First try to detect if it's a script or JSON format
-        with open(dazzlelink_path, 'r', encoding='utf-8') as f:
+        with open(dazzlelink_path, 'r', encoding='utf-8-sig') as f:
             # IMPORTANT: do NOT shell-execute an executable (script-format)
             # dazzlelink here. On Windows, running the .dazzlelink file through the
             # shell invokes the .dazzlelink file association -- which is itself
