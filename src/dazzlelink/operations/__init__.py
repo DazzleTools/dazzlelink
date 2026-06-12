@@ -28,6 +28,7 @@ from .batch import (
     batch_copy,
     check_links,
     rebase_links,
+    rebase_dazzlelinks,
     update_config_batch
 )
 from .recreate import (
@@ -61,6 +62,7 @@ __all__ = [
     'batch_copy',
     'check_links',
     'rebase_links',
+    'rebase_dazzlelinks',
     'update_config_batch',
     
     # Recreation operations

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.7.5] - 2026-06-12
+
+### Added
+- `rebase` now also rebases `.dazzlelink` files (Refs #15): a second pass synchronizes the absolute and relative target paths stored *inside* each `.dazzlelink` JSON -- recompute the relative from a valid absolute, or the absolute from a valid relative; report files where both are broken (and leave those untouched). Previously `rebase` only rewrote live OS symlinks. The `rebase_dazzlelinks()` function is exported from the package.
+
+### Changed
+- `execute --mode info` now shows a richer display (Refs #18): the portable relative path, and a LIVE on-disk Exists/Size/Type check, falling back to the metadata stored at creation when the target is gone (previously it showed only the stored snapshot).
+
 ## [0.7.4] - 2026-06-12
 
 ### Added

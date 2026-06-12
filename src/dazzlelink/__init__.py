@@ -50,6 +50,7 @@ from .operations import (
     update_config_batch,
     check_links,
     rebase_links,
+    rebase_dazzlelinks,
     recreate_link,
     execute_dazzlelink
 )

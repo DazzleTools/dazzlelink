@@ -19,6 +19,15 @@ from . import links, timestamps
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
 logger = logging.getLogger(__name__)
 
+def _format_size(size):
+    """Human-readable byte size (bytes / KB / MB)."""
+    if size < 1024:
+        return f"{size} bytes"
+    if size < 1024 * 1024:
+        return f"{size / 1024:.1f} KB"
+    return f"{size / (1024 * 1024):.1f} MB"
+
+
 def debug_print(message):
     """Print debug messages if VERBOSE is enabled"""
     if VERBOSE:
@@ -210,34 +219,39 @@ def execute_dazzlelink(dazzlelink_path, mode=None, config_override=None):
         if execute_mode == "info":
             # Show information about the dazzlelink
             print("DazzleLink Information:")
-            print(f"Target: {target_path}")
-            
-            # Show original path if available
+            print(f"\n Target:\n{target_path}")
+
+            # Original (link) path if available
             if "original_path" in link_data:
-                print(f"Original Path: {link_data['original_path']}")
+                print(f"\n Original Path:\n{link_data['original_path']}")
             elif "link" in link_data and "original_path" in link_data["link"]:
-                print(f"Original Path: {link_data['link']['original_path']}")
-            
-            # Show creation date if available
+                print(f"\n Original Path:\n{link_data['link']['original_path']}")
+
+            # Relative path (portable cross-machine target) if stored
+            target_reps = link_data.get("link", {}).get("target_representations", {})
+            rel_path = target_reps.get("relative_path")
+            if rel_path:
+                print(f"\n Relative Path:\n{rel_path}")
+
+            # Creation date if available
             if "creation_date" in link_data:
-                print(f"Creation Date: {link_data['creation_date']}")
-            
-            # Show target information if available
-            if "target" in link_data:
+                print(f"\n Created: {link_data['creation_date']}")
+
+            # Target details -- prefer a LIVE check of the current on-disk target,
+            # falling back to the metadata stored when the dazzlelink was created.
+            target_exists = os.path.exists(target_path)
+            print("\n Target Details:")
+            print(f"  Exists: {'Yes' if target_exists else 'No'}")
+            if target_exists:
+                print(f"  Size: {_format_size(os.path.getsize(target_path))}")
+                _, ext = os.path.splitext(target_path)
+                print(f"  Type: {ext[1:].upper() if ext else 'Unknown'}")
+            elif "target" in link_data:
                 target_info = link_data["target"]
-                print("\nTarget Details:")
                 print(f"  Type: {target_info.get('type', 'Unknown')}")
-                print(f"  Exists: {'Yes' if target_info.get('exists', False) else 'No'}")
                 if target_info.get('size') is not None:
-                    size = target_info['size']
-                    if size < 1024:
-                        size_str = f"{size} bytes"
-                    elif size < 1024 * 1024:
-                        size_str = f"{size/1024:.1f} KB"
-                    else:
-                        size_str = f"{size/(1024*1024):.1f} MB"
-                    print(f"  Size: {size_str}")
-        
+                    print(f"  Size: {_format_size(target_info['size'])} (at creation)")
+
         elif execute_mode == "open" or execute_mode == "auto":
             resolved_path = target_path
 

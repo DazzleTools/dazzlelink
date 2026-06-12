@@ -25,6 +25,7 @@ from . import (
     scan,
     check,
     rebase,
+    rebase_dazzlelinks,
     batch_copy,
     update_config_batch,
     configure_logging,
@@ -546,16 +547,27 @@ def main(args=None) -> int:
             elif parsed_args.absolute:
                 make_relative = False
             
+            only_broken = parsed_args.only_broken if hasattr(parsed_args, 'only_broken') else False
+
+            # Rebase live OS symlinks (absolute/relative conversion, path rewrite).
             result = rebase(
                 parsed_args.directory,
                 recursive=recursive,
                 make_relative=make_relative,
                 target_base=parsed_args.target_base if hasattr(parsed_args, 'target_base') else None,
-                only_broken=parsed_args.only_broken if hasattr(parsed_args, 'only_broken') else False
+                only_broken=only_broken
             )
-            
-            # Return non-zero if errors found
-            if result['errors']:
+
+            # Also rebase .dazzlelink files -- sync the absolute/relative target
+            # paths stored inside them (a distinct operation from symlink rebase).
+            dl_result = rebase_dazzlelinks(
+                parsed_args.directory,
+                recursive=recursive,
+                only_broken=only_broken
+            )
+
+            # Return non-zero if either reported errors
+            if result['errors'] or dl_result['errors']:
                 return 1
 
         elif parsed_args.command == 'copy':
