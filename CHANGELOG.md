@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.7.2] - 2026-06-11
+
+### Fixed
+- **Fork bomb on `execute` of an executable dazzlelink (Refs #18).** `execute` ran a script-format `.dazzlelink` via `subprocess.run(..., shell=True)`, which on Windows re-invokes the `.dazzlelink` file association (itself `dazzlelink execute`) -- unbounded recursion that spawns processes until the machine is overwhelmed. `execute` now reads the embedded JSON and opens the target directly for both plain and executable dazzlelinks; the marker is matched as an exact line (the literal also appears in the script's own source). This path became easy to hit once executable generation was fixed (below), so the two ship together.
+- Executable dazzlelink generation no longer crashes and now produces a runnable script (Refs #18). Four bugs, all present since the first release and masked by the first one:
+  - `serialize_link(make_executable=True)` raised `AttributeError` — `core.py` called `self._make_dazzlelink_executable`, which became the module function `links.make_dazzlelink_executable` during modularization; the call site now delegates correctly
+  - `links.py` and `batch.py` used `json` without importing it (latent `NameError`; batch's affected the `update-config` path)
+  - the generated script embedded a raw Windows path into a Python block, causing a `\U` `SyntaxError` — now embedded with forward slashes (ShellExecute-compatible; canonical backslash path preserved in the embedded JSON)
+  - the trailing JSON data block was executed as Python (`false`/`true`/`null` → `NameError`) — now guarded by `sys.exit(0)` after `main()`
+  - the same fixes are applied to the legacy monolith
+- Execute mode precedence is now CLI > file-embedded > global > "info" (file-beats-global, matching the monolith): a file's embedded mode is no longer overridden by the global config default (Refs #19)
+
+### Changed
+- `convert`/`mirror` now honor `--executable` and `--mode` (the CLI config is forwarded to the operation); `execute` now honors `--config-level` (the loaded config is passed through as the fallback)
+
+### Notes
+- Generated-script path representation uses forward slashes for now (tool-mode pragmatism); canonical runtime-read is tracked for the eventual library-mode transition (#23)
+
 ## [0.7.1] - 2026-06-11
 
 ### Changed

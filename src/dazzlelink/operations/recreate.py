@@ -142,49 +142,35 @@ def execute_dazzlelink(dazzlelink_path, mode=None, config_override=None):
     try:
         # First try to detect if it's a script or JSON format
         with open(dazzlelink_path, 'r', encoding='utf-8') as f:
-            # Read the first few lines to detect format
-            first_lines = ''.join([f.readline() for _ in range(3)])
-            
-            # Reset file pointer to beginning
-            f.seek(0)
-            
-            # Check if it's a script format (has shell/batch header)
-            if '#!/bin/sh' in first_lines or '@echo off' in first_lines:
-                # Handle script-embedded dazzlelink
-                if os.name == 'nt':
-                    # On Windows, execute as a batch file
-                    cmd = [dazzlelink_path]
-                    if mode:
-                        cmd.append(f"--{mode}")
-                    import subprocess
-                    subprocess.run(cmd, shell=True)
-                else:
-                    # On Unix, ensure it's executable and run it
-                    if not os.access(dazzlelink_path, os.X_OK):
-                        import stat
-                        os.chmod(dazzlelink_path, os.stat(dazzlelink_path).st_mode | stat.S_IEXEC)
-                    cmd = [dazzlelink_path]
-                    if mode:
-                        cmd.append(f"--{mode}")
-                    import subprocess
-                    subprocess.run(cmd)
-                return
-            
-            # Otherwise, try to parse as JSON
+            # IMPORTANT: do NOT shell-execute an executable (script-format)
+            # dazzlelink here. On Windows, running the .dazzlelink file through the
+            # shell invokes the .dazzlelink file association -- which is itself
+            # `dazzlelink execute` -- producing unbounded recursion (a fork bomb).
+            # Both plain and executable dazzlelinks carry the same JSON (executable
+            # ones embed it after the DAZZLELINK_DATA_BEGIN marker); we parse it and
+            # open the target directly below, identically for both formats.
             try:
-                # Reset file pointer again just to be safe
                 f.seek(0)
                 import json
                 link_data = json.load(f)
             except json.JSONDecodeError:
-                # If it's not a clean JSON but might have embedded JSON
-                # Try to extract JSON section from script format
+                # Executable (script-format) dazzlelink: extract the JSON embedded
+                # after the data marker. Match the marker as an exact LINE -- the
+                # literal "# DAZZLELINK_DATA_BEGIN" also appears inside the script's
+                # own Python source (the code that reads the marker), so a naive
+                # substring search would grab that earlier occurrence and parse the
+                # script body as JSON. This mirrors how the generated script's own
+                # main() locates the marker.
                 f.seek(0)
                 content = f.read()
-                json_start = content.find('# DAZZLELINK_DATA_BEGIN')
-                
-                if json_start != -1:
-                    json_text = content[json_start + len('# DAZZLELINK_DATA_BEGIN'):].strip()
+                json_text = None
+                lines = content.splitlines(keepends=True)
+                for i, line in enumerate(lines):
+                    if line.strip() == '# DAZZLELINK_DATA_BEGIN':
+                        json_text = ''.join(lines[i + 1:])
+                        break
+
+                if json_text is not None:
                     try:
                         link_data = json.loads(json_text)
                     except json.JSONDecodeError:
@@ -204,15 +190,21 @@ def execute_dazzlelink(dazzlelink_path, mode=None, config_override=None):
         else:
             raise DazzleLinkException(f"Invalid dazzlelink format in {dazzlelink_path}")
         
-        # Use mode precedence:
+        # Use mode precedence (matches the monolith): the file knows best what it
+        # wants, the CLI always wins, and the global/directory config is only a
+        # last-resort fallback when neither the CLI nor the file expressed a
+        # preference. See issue #19 -- the previous order let the global config's
+        # perpetual "info" default override every file's embedded mode.
         # 1. Command line mode override
-        # 2. Config override (if provided)
-        # 3. Dazzlelink file's embedded config
+        # 2. Dazzlelink file's embedded mode
+        # 3. Config override (global/directory) fallback
         execute_mode = mode
+        if execute_mode is None:
+            execute_mode = default_mode
         if execute_mode is None and config_override is not None:
             execute_mode = config_override.get("default_mode")
         if execute_mode is None:
-            execute_mode = default_mode
+            execute_mode = "info"
         
         # Execute based on mode
         if execute_mode == "info":

@@ -369,9 +369,10 @@ def main(args=None) -> int:
             dazzlelinks = convert(
                 parsed_args.directory,
                 recursive=recursive,
-                keep_originals=keep_originals
+                keep_originals=keep_originals,
+                config=config
             )
-            
+
             action = "Converted" if keep_originals else "Replaced"
             print(f"{action} {len(dazzlelinks)} symlinks to dazzlelinks in {parsed_args.directory}")
             
@@ -394,7 +395,8 @@ def main(args=None) -> int:
             dazzlelinks = mirror(
                 parsed_args.src_dir,
                 parsed_args.dest_dir,
-                recursive=recursive
+                recursive=recursive,
+                config=config
             )
             
             print(f"Mirrored {len(dazzlelinks)} symlinks as dazzlelinks from {parsed_args.src_dir} to {parsed_args.dest_dir}")
@@ -413,7 +415,8 @@ def main(args=None) -> int:
             
             execute(
                 parsed_args.dazzlelink_path,
-                mode=parsed_args.mode if hasattr(parsed_args, 'mode') else None
+                mode=parsed_args.mode if hasattr(parsed_args, 'mode') else None,
+                config_override=config
             )
             
         elif parsed_args.command == 'config':

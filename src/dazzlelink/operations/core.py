@@ -22,6 +22,7 @@ from ..exceptions import DazzleLinkException
 from ..data import DazzleLinkData
 from ..config import DazzleLinkConfig
 from ..path import UNCAdapter, get_unc_adapter
+from . import links
 
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
@@ -310,7 +311,7 @@ class DazzleLink:
                 json.dump(data_dict, f, indent=2)
             
             if make_executable:
-                self._make_dazzlelink_executable(output_path, data_dict)
+                links.make_dazzlelink_executable(str(output_path), data_dict)
             
             return output_path
             

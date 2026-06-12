@@ -8,6 +8,7 @@ with symbolic links across different operating systems.
 import os
 import sys
 import re
+import json
 import logging
 import subprocess
 import time
@@ -448,13 +449,22 @@ def make_dazzlelink_executable(dazzlelink_path, link_data=None):
         f.write('python "%~dpnx0" %*\n')
         f.write('exit /b\n')
         f.write('\n')
+        # The batch lines below live inside a Python triple-quoted string (the
+        # polyglot """:" ... """ block). A raw Windows path such as C:\Users would
+        # be read by Python as an invalid escape (\U, \x, ...) and make the whole
+        # generated script a SyntaxError. Use forward slashes for the embedded
+        # path: ShellExecute -- which the batch `start` below invokes -- accepts
+        # them on Windows, they display cleanly in the echo, and they sidestep the
+        # invalid-escape problem entirely. (The canonical backslash path is still
+        # preserved in the embedded JSON data block, untouched.)
+        batch_target = target_path.replace('\\', '/')
         f.write(':open_target\n')
-        f.write(f'start "" "{target_path}"\n')
+        f.write(f'start "" "{batch_target}"\n')
         f.write('exit /b\n')
         f.write('\n')
         f.write(':show_info\n')
         f.write('echo DazzleLink Information:\n')
-        f.write(f'echo Target: {target_path}\n')
+        f.write(f'echo Target: {batch_target}\n')
         f.write('echo.\n')
         f.write('echo Use --open to open the target directly\n')
         f.write('exit /b\n')
@@ -589,6 +599,10 @@ def make_dazzlelink_executable(dazzlelink_path, link_data=None):
         
         f.write('if __name__ == "__main__":\n')
         f.write('    main()\n')
+        f.write('    # Stop before the embedded JSON data below: it parses as a\n')
+        f.write('    # Python literal but must never be executed (JSON true/false/\n')
+        f.write('    # null are not Python names).\n')
+        f.write('    sys.exit(0)\n')
         f.write('\n')
         f.write('# DAZZLELINK_DATA_BEGIN\n')
         

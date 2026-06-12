@@ -125,47 +125,67 @@ def create_link(target, link_name, make_executable=None, mode=None):
         require_symlink=False
     )
 
-def convert(directory, recursive=True, keep_originals=True):
+def convert(directory, recursive=True, keep_originals=True,
+            make_executable=None, mode=None, config=None):
     """
     Convert symlinks in a directory to dazzlelinks
-    
+
     Args:
         directory: Directory to scan
         recursive: Whether to scan recursively
         keep_originals: Whether to keep original symlinks
-    
+        make_executable: Whether to make the dazzlelinks executable
+            (None uses config default)
+        mode: Default execution mode for the dazzlelinks (None uses config default)
+        config: Configuration object to use (None creates a fresh one).
+            Pass the CLI's config so --executable/--mode are honored.
+
     Returns:
         List of created dazzlelink paths
     """
     return convert_directory(
-        directory, 
-        recursive=recursive, 
-        keep_originals=keep_originals
+        directory,
+        recursive=recursive,
+        keep_originals=keep_originals,
+        make_executable=make_executable,
+        mode=mode,
+        config=config
     )
 
-def mirror(src_dir, dest_dir, recursive=True):
+def mirror(src_dir, dest_dir, recursive=True,
+           make_executable=None, mode=None, config=None):
     """
     Mirror a directory structure with dazzlelinks
-    
+
     Args:
         src_dir: Source directory
         dest_dir: Destination directory
         recursive: Whether to scan recursively
-    
+        make_executable: Whether to make the dazzlelinks executable
+            (None uses config default)
+        mode: Default execution mode for the dazzlelinks (None uses config default)
+        config: Configuration object to use (None creates a fresh one).
+            Pass the CLI's config so --executable/--mode are honored.
+
     Returns:
         List of created dazzlelink paths
     """
-    return mirror_directory(src_dir, dest_dir, recursive=recursive)
+    return mirror_directory(
+        src_dir, dest_dir, recursive=recursive,
+        make_executable=make_executable, mode=mode, config=config
+    )
 
-def execute(dazzlelink_path, mode=None):
+def execute(dazzlelink_path, mode=None, config_override=None):
     """
     Execute/open a dazzlelink
-    
+
     Args:
         dazzlelink_path: Path to the dazzlelink
         mode: Override execution mode
+        config_override: Configuration object whose default_mode is used as a
+            last-resort fallback (after the CLI mode and the file's embedded mode)
     """
-    return execute_dazzlelink(dazzlelink_path, mode)
+    return execute_dazzlelink(dazzlelink_path, mode, config_override=config_override)
 
 def scan(directory, recursive=True):
     """

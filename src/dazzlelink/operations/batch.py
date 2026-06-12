@@ -8,6 +8,7 @@ or files at once, such as batch import, batch conversion, and batch checking.
 import os
 import sys
 import re
+import json
 import logging
 import shutil
 from pathlib import Path

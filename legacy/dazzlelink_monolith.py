@@ -2782,13 +2782,18 @@ class DazzleLink:
             f.write('python "%~dpnx0" %*\n')
             f.write('exit /b\n')
             f.write('\n')
+            # Forward-slash the embedded path so a Windows C:\Users path does not
+            # form an invalid Python escape (\U, \x) inside this triple-quoted
+            # block; ShellExecute (invoked by `start`) accepts forward slashes.
+            # The canonical backslash path is preserved in the embedded JSON.
+            batch_target = target_path.replace('\\', '/')
             f.write(':open_target\n')
-            f.write(f'start "" "{target_path}"\n')
+            f.write(f'start "" "{batch_target}"\n')
             f.write('exit /b\n')
             f.write('\n')
             f.write(':show_info\n')
             f.write('echo DazzleLink Information:\n')
-            f.write(f'echo Target: {target_path}\n')
+            f.write(f'echo Target: {batch_target}\n')
             f.write('echo.\n')
             f.write('echo Use --open to open the target directly\n')
             f.write('exit /b\n')
@@ -2923,6 +2928,10 @@ class DazzleLink:
             
             f.write('if __name__ == "__main__":\n')
             f.write('    main()\n')
+            f.write('    # Stop before the embedded JSON data below: it parses as a\n')
+            f.write('    # Python literal but must never be executed (JSON true/false/\n')
+            f.write('    # null are not Python names).\n')
+            f.write('    sys.exit(0)\n')
             f.write('\n')
             f.write('# DAZZLELINK_DATA_BEGIN\n')
             
