@@ -28,6 +28,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[dev]" || pip install -e .
 
+    - name: Lint (undefined names + syntax errors)
+      run: |
+        # Fail only on real logical errors -- undefined names (F82) and syntax
+        # errors (E9, F63, F7) -- not style. This catches the missing-import class
+        # (e.g. a NameError that only fires on Linux) before the test run. Scoped to
+        # the package; the legacy monolith has pre-existing flags and is not linted.
+        flake8 src/dazzlelink --count --select=E9,F63,F7,F82 --show-source --statistics
+
     - name: Run tests
       run: |
         if [ -d "tests" ]; then

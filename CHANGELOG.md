@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.7.3] - 2026-06-12
+
+### Fixed
+- POSIX executable dazzlelink generation raised `NameError: name 'stat' is not defined` -- `links.py` used `stat` in the Unix chmod path without importing it (the Windows path never reached that branch, so it surfaced only on Linux CI). Added the missing import.
+
+### Changed
+- CI (`python.yml`): added a lint step that fails on undefined names / syntax errors only (flake8 `E9,F63,F7,F82`, scoped to the package). Catches the missing-import class (a `NameError` that only fires on one platform) before the test run, without failing on style.
+
+### Added
+- `release.yml`: PyPI publish workflow using GitHub OIDC trusted publishing (no stored token), triggered when a GitHub Release is marked as the active, non-prerelease release (`release: [released]`), plus a manual `workflow_dispatch` for dry runs.
+
 ## [0.7.2] - 2026-06-11
 
 ### Fixed
