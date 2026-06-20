@@ -32,6 +32,8 @@ keywords = ["symlinks", "symbolic links", "network paths", "UNC paths", "file ma
 requires-python = ">=3.10"
 dependencies = [
     "pywin32>=223; sys_platform == 'win32'",
+    # The link-record core lives in dazzle-linklib (L2); the tool consumes it.
+    "dazzle-linklib>=0.2.0",
 ]
 
 [project.optional-dependencies]

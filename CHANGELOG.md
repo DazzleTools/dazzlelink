@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.9.0] - 2026-06-20
+
+**Milestone:** the link-record core is extracted to the **dazzle-linklib** library (L2 of the DazzleLib stack); the tool begins consuming it as a thin client, so the record model lives in exactly one place across the stack.
+
+### Changed
+- `dazzlelink.data` no longer defines `DazzleLinkData` -- it re-exports the class from `dazzle-linklib`. The 389-line implementation became a 13-line re-export; the tool's behavior is unchanged (CLI test suite green).
+
+### Added
+- Dependency on `dazzle-linklib>=0.2.0` (the L2 record library).
+
 ## [0.8.0] - 2026-06-12
 
 **Milestone:** the installable `dazzlelink` package now has full capability parity with the legacy monolith (completed across 0.7.2-0.7.5), the monolith is deprecated, and the package is validated for PyPI.
