@@ -86,8 +86,11 @@ def test_rebase_both_broken_is_error(tmp_path):
 
 
 def test_rebase_no_files_is_clean(tmp_path):
+    # rebase_dazzlelinks now delegates to dazzle-linklib, which reports a
+    # 'skipped' bucket (for polyglot records it won't rewrite) alongside the
+    # original changed/unchanged/errors.
     res = batch.rebase_dazzlelinks(str(tmp_path), recursive=False)
-    assert res == {"changed": [], "unchanged": [], "errors": []}
+    assert res == {"changed": [], "unchanged": [], "skipped": [], "errors": []}
 
 
 # --- GT-8: richer execute --mode info -------------------------------------

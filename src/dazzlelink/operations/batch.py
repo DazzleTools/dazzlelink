@@ -19,6 +19,8 @@ from ..data import DazzleLinkData
 from ..config import DazzleLinkConfig
 from . import links, timestamps
 
+from dazzle_linklib import rebase as _linklib_rebase
+
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
 logger = logging.getLogger(__name__)
@@ -1001,86 +1003,23 @@ def rebase_dazzlelinks(directory, recursive=True, only_broken=False):
             function already only rewrites files whose stored paths are out of sync.
 
     Returns:
-        dict: {'changed': [...], 'unchanged': [...], 'errors': [...]}
+        dict: {'changed': [...], 'unchanged': [...], 'skipped': [...],
+        'errors': [...]}
     """
-    import glob
+    # Delegate the record-file rebase logic to dazzle-linklib (the L2 operation);
+    # the tool owns the user-facing presentation (printing) below. The library
+    # adds a 'skipped' bucket for polyglot (executable-script) records it won't
+    # rewrite -- previously these surfaced as cryptic JSON parse errors.
+    result = _linklib_rebase(directory, recursive=recursive, only_broken=only_broken)
 
-    result = {'changed': [], 'unchanged': [], 'errors': []}
-
-    pattern = (os.path.join(directory, '**', '*.dazzlelink') if recursive
-               else os.path.join(directory, '*.dazzlelink'))
-    dazzlelink_files = glob.glob(pattern, recursive=recursive)
-
-    if not dazzlelink_files:
+    total = sum(len(result.get(k, [])) for k in ('changed', 'unchanged', 'skipped', 'errors'))
+    if total == 0:
         print(f"No .dazzlelink files found in {directory}")
         return result
 
-    print(f"Rebasing {len(dazzlelink_files)} dazzlelink file(s)...")
-
-    for dl_path in dazzlelink_files:
-        try:
-            with open(dl_path, 'r', encoding='utf-8-sig') as f:
-                data = json.load(f)
-
-            link_section = data.get('link', {})
-            target_path = link_section.get('target_path', '')
-            target_reps = link_section.get('target_representations', {})
-            relative_path = target_reps.get('relative_path', '')
-
-            dl_dir = os.path.dirname(os.path.abspath(dl_path))
-
-            abs_valid = os.path.exists(target_path) if target_path else False
-            rel_resolved = (os.path.normpath(os.path.join(dl_dir, relative_path))
-                            if relative_path else '')
-            rel_valid = os.path.exists(rel_resolved) if rel_resolved else False
-
-            if abs_valid:
-                # Absolute is the source of truth; keep relative in sync with it.
-                expected_relative = os.path.relpath(target_path, dl_dir)
-                if relative_path == expected_relative:
-                    result['unchanged'].append({
-                        'file': dl_path,
-                        'reason': 'Both paths valid and in sync',
-                    })
-                    continue
-                target_reps['relative_path'] = expected_relative
-                data.setdefault('link', {})['target_representations'] = target_reps
-                with open(dl_path, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, default=str)
-                result['changed'].append({
-                    'file': dl_path,
-                    'action': 'Recomputed relative from absolute',
-                    'old_relative': relative_path,
-                    'new_relative': expected_relative,
-                })
-
-            elif rel_valid:
-                # Absolute broken but the relative path resolves -> recompute absolute.
-                new_absolute = os.path.abspath(rel_resolved)
-                data.setdefault('link', {})['target_path'] = new_absolute
-                target_reps['original_path'] = new_absolute
-                data['link']['target_representations'] = target_reps
-                with open(dl_path, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, default=str)
-                result['changed'].append({
-                    'file': dl_path,
-                    'action': 'Recomputed absolute from relative',
-                    'old_absolute': target_path,
-                    'new_absolute': new_absolute,
-                })
-
-            else:
-                result['errors'].append({
-                    'file': dl_path,
-                    'error': (f'Both paths broken. Absolute: {target_path}, '
-                              f'Relative: {relative_path}'),
-                })
-
-        except Exception as e:
-            result['errors'].append({'file': dl_path, 'error': str(e)})
-
     print(f"Results: {len(result['changed'])} changed, "
-          f"{len(result['unchanged'])} unchanged, {len(result['errors'])} errors")
+          f"{len(result['unchanged'])} unchanged, "
+          f"{len(result.get('skipped', []))} skipped, {len(result['errors'])} errors")
 
     if result['changed']:
         print("\nChanged:")
@@ -1091,6 +1030,11 @@ def rebase_dazzlelinks(directory, recursive=True, only_broken=False):
                 print(f"    {info.get('old_relative', '')} -> {info['new_relative']}")
             if 'new_absolute' in info:
                 print(f"    {info.get('old_absolute', '')} -> {info['new_absolute']}")
+
+    if result.get('skipped'):
+        print("\nSkipped:")
+        for info in result['skipped']:
+            print(f"  {os.path.basename(info['file'])}: {info['reason']}")
 
     if result['errors']:
         print("\nErrors:")

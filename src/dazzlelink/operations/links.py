@@ -16,6 +16,8 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Any, Tuple
 
+from dazzle_linklib import find_dazzlelinks as _linklib_find_dazzlelinks
+
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
 logger = logging.getLogger(__name__)
@@ -286,85 +288,23 @@ def restore_file_attributes(link_path, link_data):
 def find_dazzlelinks(path_patterns, recursive=False, pattern=None, dazzlelink_ext='.dazzlelink'):
     """
     Find dazzlelink files based on path patterns, recursion, and filtering.
-    
+
+    Delegates to dazzle-linklib's find_dazzlelinks (the L2 record-discovery
+    operation); the signature and return type (a de-duplicated, order-stable
+    list of Path objects) are unchanged.
+
     Args:
         path_patterns (list or str): Path pattern(s) to search for dazzlelinks
         recursive (bool): Whether to search subdirectories recursively
-        pattern (str, optional): Glob pattern to filter dazzlelink filenames (e.g., "*.dazzlelink")
-            If None, defaults to "*.dazzlelink"
-    
+        pattern (str, optional): Glob pattern to filter dazzlelink filenames
+            (e.g., "*.dazzlelink"); if None, defaults to "*<ext>"
+
     Returns:
         list: List of dazzlelink file paths (as Path objects)
     """
-    import glob
-    import fnmatch
-    from pathlib import Path
-    
-    # Normalize input to list
-    if isinstance(path_patterns, str):
-        path_patterns = [path_patterns]
-        
-    # Default pattern if not specified
-    if pattern is None:
-        pattern = f"*{dazzlelink_ext}"
-        
-    found_dazzlelinks = []
-    
-    for path_pattern in path_patterns:
-        # Expand any glob patterns in the input paths
-        expanded_paths = glob.glob(path_pattern, recursive=False)
-        
-        # If glob didn't match anything, use the path as-is
-        if not expanded_paths:
-            expanded_paths = [path_pattern]
-            
-        for path in expanded_paths:
-            path_obj = Path(path)
-            
-            # Case 1: Direct file path
-            if path_obj.is_file():
-                if path_obj.suffix == dazzlelink_ext and (pattern == f"*{dazzlelink_ext}" or fnmatch.fnmatch(path_obj.name, pattern)):
-                    found_dazzlelinks.append(path_obj)
-            
-            # Case 2: Directory path
-            elif path_obj.is_dir():
-                if recursive:
-                    # Recursive search
-                    for root, _, files in os.walk(path_obj):
-                        root_path = Path(root)
-                        for file in files:
-                            if file.endswith(dazzlelink_ext) and fnmatch.fnmatch(file, pattern):
-                                found_dazzlelinks.append(root_path / file)
-                else:
-                    # Non-recursive, just search the directory
-                    for file in path_obj.glob(pattern):
-                        if file.is_file() and file.suffix == dazzlelink_ext:
-                            found_dazzlelinks.append(file)
-            
-            # Case 3: Non-existent path with wildcards (could be a pattern)
-            elif '*' in str(path_obj) or '?' in str(path_obj):
-                # This might be a pattern that didn't get expanded by glob
-                try:
-                    # Try using Path.glob on the parent directory
-                    parent = path_obj.parent
-                    if parent.exists():
-                        file_pattern = path_obj.name
-                        for file in parent.glob(file_pattern):
-                            if file.is_file() and file.suffix == dazzlelink_ext and fnmatch.fnmatch(file.name, pattern):
-                                found_dazzlelinks.append(file)
-                except Exception as e:
-                    debug_print(f"Error while processing pattern {path_obj}: {e}")
-    
-    # Remove duplicates while preserving order
-    unique_dazzlelinks = []
-    seen = set()
-    for link in found_dazzlelinks:
-        link_str = str(link)
-        if link_str not in seen:
-            seen.add(link_str)
-            unique_dazzlelinks.append(link)
-    
-    return unique_dazzlelinks
+    return _linklib_find_dazzlelinks(
+        path_patterns, recursive=recursive, pattern=pattern, dazzlelink_ext=dazzlelink_ext
+    )
 
 def scan_directory(directory, recursive=True):
     """
