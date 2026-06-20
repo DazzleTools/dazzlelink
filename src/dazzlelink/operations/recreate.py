@@ -12,8 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Any
 
 from ..exceptions import DazzleLinkException
-from ..data import DazzleLinkData
-from . import links, timestamps
+from dazzle_linklib import recreate_link as _linklib_recreate_link
 
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
@@ -45,95 +44,26 @@ def recreate_link(dazzlelink_path, target_location=None, timestamp_strategy='cur
         timestamp_strategy (str): Strategy for setting timestamps ('current', 'symlink', 'target', 'preserve-all')
         update_dazzlelink (bool): Whether to update the dazzlelink metadata during recreation
         use_live_target (bool): Whether to check the live target file for timestamps
-        batch_mode (bool): If True, optimizes for batch processing (less verification)
-        
+        batch_mode (bool): Accepted for backward compatibility; now a no-op
+            (the library does not run the old per-link re-verification pass)
+
     Returns:
         str: Path to the created symbolic link
     """
+    # Delegate to dazzle-linklib's recreate_link (the L2 operation): it loads the
+    # record, creates the symlink (via filekit), applies the timestamp strategy,
+    # restores file attributes, and -- with update_record -- folds live-target
+    # timestamps back into the saved record. ``batch_mode`` is accepted for
+    # backward compatibility but is a no-op: the library does not run the tool's
+    # old per-link timestamp re-verification pass.
     try:
-        # Load the dazzlelink data
-        dl_data = DazzleLinkData.from_file(dazzlelink_path)
-        
-        # Get the target and original paths
-        target_path = dl_data.get_target_path()
-        original_path = dl_data.get_original_path()
-        
-        # Determine if target is a directory
-        is_dir = dl_data.get_target_type() == "directory"
-        
-        # Determine where to create the symlink
-        if target_location:
-            # Use the provided location but keep the original filename
-            original_name = os.path.basename(original_path)
-            link_path = os.path.join(target_location, original_name)
-        else:
-            link_path = original_path
-        
-        # Ensure parent directory exists
-        os.makedirs(os.path.dirname(link_path), exist_ok=True)
-        
-        # Remove existing link/file if it exists
-        if os.path.exists(link_path):
-            if os.path.isdir(link_path) and not os.path.islink(link_path):
-                shutil.rmtree(link_path)
-            else:
-                os.unlink(link_path)
-        
-        # Create symlink with appropriate method based on OS
-        if os.name == 'nt':
-            links.create_windows_symlink(target_path, link_path, is_dir)
-        else:
-            os.symlink(target_path, link_path)
-        
-        # Verify symlink was created
-        if not os.path.exists(link_path):
-            raise DazzleLinkException(f"Failed to create symlink at {link_path}")
-        
-        # Very small delay to ensure symlink creation is complete (helps avoid race conditions)
-        # Reduced from 0.1 to 0.01 seconds
-        if not batch_mode:
-            import time
-            time.sleep(0.01)
-        
-        # Apply timestamps based on the selected strategy
-        timestamps.apply_timestamp_strategy(link_path, dl_data, timestamp_strategy, use_live_target, batch_mode=batch_mode)
-        
-        # Verify timestamps were correctly applied (if not current and not in batch mode)
-        if timestamp_strategy != 'current' and os.name == 'nt' and not batch_mode:
-            timestamps.verify_timestamps(link_path, dl_data, timestamp_strategy, use_live_target)
-        
-        # Attempt to restore file attributes if available
-        links.restore_file_attributes(link_path, dl_data.to_dict())
-        
-        # Update dazzlelink metadata if requested
-        if update_dazzlelink:
-            try:
-                # Update dazzlelink metadata
-                dl_data.update_metadata(reason="symlink_recreation")
-                
-                # If we used live target and it was successful, update target timestamps too
-                if use_live_target and timestamp_strategy in ['target', 'preserve-all']:
-                    target_path = dl_data.get_target_path()
-                    if os.path.exists(target_path):
-                        # Get current target timestamps
-                        target_timestamps = timestamps.collect_target_timestamp_info(target_path)
-                        
-                        # Update in the dazzlelink data
-                        dl_data.set_target_timestamps(
-                            created=target_timestamps.get('created'),
-                            modified=target_timestamps.get('modified'),
-                            accessed=target_timestamps.get('accessed')
-                        )
-                
-                # Save the updated dazzlelink
-                dl_data.save_to_file(dazzlelink_path)
-                
-                debug_print(f"Updated dazzlelink metadata for {dazzlelink_path}")
-            except Exception as e:
-                debug_print(f"Failed to update dazzlelink metadata: {str(e)}")
-        
-        return link_path
-        
+        return _linklib_recreate_link(
+            dazzlelink_path,
+            target_location=target_location,
+            timestamp_strategy=timestamp_strategy,
+            use_live_target=use_live_target,
+            update_record=update_dazzlelink,
+        )
     except Exception as e:
         raise DazzleLinkException(f"Failed to recreate link from {dazzlelink_path}: {str(e)}")
 
