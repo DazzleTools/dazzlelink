@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.9.1] - 2026-06-20
+
+### Changed
+- `batch_import` (the `import` command) now creates each link and applies its timestamp strategy + file attributes via dazzle-linklib (`create_link` + `apply_record_metadata`) instead of its own inline symlink/timestamp/attribute block. Behavior is unchanged; `batch_optimization` no longer gates a re-verification pass (the library does not run one). The `import` create -> delete -> recreate workflow is verified end-to-end.
+
 ## [0.9.0] - 2026-06-20
 
 **Milestone:** the link-record core is extracted to the **dazzle-linklib** library (L2 of the DazzleLib stack); the tool begins consuming it as a thin client, so the record model lives in exactly one place across the stack.

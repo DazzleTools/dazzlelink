@@ -20,6 +20,8 @@ from ..config import DazzleLinkConfig
 from . import links, timestamps
 
 from dazzle_linklib import rebase as _linklib_rebase
+from dazzle_linklib import create_link as _ll_create_link
+from dazzle_linklib import apply_record_metadata as _ll_apply_record_metadata
 
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
@@ -177,41 +179,24 @@ def batch_import(path_patterns, target_location=None, recursive=False,
                         print(f"    WOULD UPDATE METADATA: {dl_path}")
                     continue
                 
-                # Create the link - pass batch_optimization flag to indicate we're in batch mode
-                # This affects timestamp verification strategy
+                # Create the link + apply the record's timestamp strategy and file
+                # attributes via dazzle-linklib (create_link + apply_record_metadata).
+                # The library owns the parent-dir creation, force-overwrite, symlink
+                # creation, and metadata application. batch_optimization (the old
+                # batch_mode) only gated a per-link re-verification pass the library
+                # does not run, so it no longer has an effect here.
                 try:
-                    # Ensure parent directory exists
-                    os.makedirs(os.path.dirname(new_link_path), exist_ok=True)
-                    
-                    # Remove existing link/file if it exists
-                    if os.path.exists(new_link_path):
-                        if os.path.isdir(new_link_path) and not os.path.islink(new_link_path):
-                            shutil.rmtree(new_link_path)
-                        else:
-                            os.unlink(new_link_path)
-                    
-                    # Get target information
+                    # Target path (kept for reporting + the metadata-update block below).
                     target_path = dl_data.get_target_path()
-                    is_dir = dl_data.get_target_type() == "directory"
-                    
-                    # Create symlink
-                    if os.name == 'nt':
-                        links.create_windows_symlink(target_path, new_link_path, is_dir)
-                    else:
-                        os.symlink(target_path, new_link_path)
-                    
-                    # Apply timestamp strategy with batch optimization
-                    timestamps.apply_timestamp_strategy(
-                        new_link_path,
+
+                    _ll_create_link(dl_data, new_link_path, force=True)
+                    _ll_apply_record_metadata(
                         dl_data,
-                        timestamp_strategy,
-                        use_live_target,
-                        batch_mode=batch_optimization
+                        new_link_path,
+                        timestamp_strategy=timestamp_strategy,
+                        use_live_target=use_live_target,
                     )
-                    
-                    # Restore file attributes
-                    links.restore_file_attributes(new_link_path, dl_data.to_dict())
-                    
+
                     # Update dazzlelink metadata if requested
                     if update_dazzlelink:
                         dl_data.update_metadata(reason="symlink_recreation")
