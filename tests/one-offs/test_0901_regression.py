@@ -434,8 +434,10 @@ def test_B7_windows_attributes():
     record("B7.import-succeeds", PASS if (rc == 0 and is_link) else FAIL,
            f"rc={rc} is_symlink={is_link}")
 
-    if is_link:
-        # Check attributes via ctypes on the link itself (not following it)
+    if is_link and os.name == "nt":
+        # Check attributes via ctypes on the link itself (not following it).
+        # Windows-only: file attributes (hidden/system/readonly) are a Windows
+        # concept and ctypes.windll does not exist on other platforms.
         import ctypes
         FILE_ATTRIBUTE_HIDDEN = 0x2
         FILE_ATTRIBUTE_READONLY = 0x1
@@ -463,6 +465,9 @@ def test_B7_windows_attributes():
             ctypes.windll.kernel32.SetFileAttributesW(str(link), new_attrs)
         except Exception:
             pass
+    elif is_link:
+        record("B7.attributes-check", SKIP,
+               "Windows file attributes (hidden/readonly) are a Windows-only concern")
 
 
 # ---------------------------------------------------------------------------
@@ -545,11 +550,12 @@ def test_C2_apply_record_metadata():
     record("C2.writes-link-not-target", PASS if abs(target_mtime_after - target_mtime_before) < 1.0 else FAIL,
            f"target_mtime changed by {abs(target_mtime_after - target_mtime_before):.3f}s")
 
-    # Clean up readonly if set
-    import ctypes
-    attrs = ctypes.windll.kernel32.GetFileAttributesW(str(link))
-    if attrs != -1 and (attrs & 0x2):  # hidden
-        ctypes.windll.kernel32.SetFileAttributesW(str(link), attrs & ~0x2)
+    # Clean up readonly if set (Windows-only -- ctypes.windll is Windows-only)
+    if os.name == "nt":
+        import ctypes
+        attrs = ctypes.windll.kernel32.GetFileAttributesW(str(link))
+        if attrs != -1 and (attrs & 0x2):  # hidden
+            ctypes.windll.kernel32.SetFileAttributesW(str(link), attrs & ~0x2)
 
 
 # ---------------------------------------------------------------------------
