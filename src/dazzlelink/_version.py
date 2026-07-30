@@ -21,7 +21,7 @@ PRE_RELEASE_NUM = 1  # PEP 440 pre-release number (e.g., a1, b2)
 PROJECT_PHASE = "alpha"  # Project-wide: "prealpha", "alpha", "beta", "stable"
 
 # Auto-updated by git hooks - do not edit manually
-__version__ = "0.10.0_main_55-20260730-b2973ec4"
+__version__ = "0.10.0_main_56-20260730-dca6fa8d"
 __app_name__ = "dazzlelink"
 
 

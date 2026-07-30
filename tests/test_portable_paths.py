@@ -60,8 +60,11 @@ def test_create_writes_relative_and_original(tmp_path):
     assert reps["relative_path"] == "asset.pdf"
 
 
+@pytest.mark.skipif(not IS_WINDOWS, reason="cross-drive relpath failure is a Windows-only concept")
 def test_create_cross_drive_omits_relative(tmp_path):
     # Record dir on another drive than the target -> no relative key at all.
+    # (On POSIX there are no drives: relpath always succeeds, so the provable-
+    # absence branch cannot exist there -- skipping is correct, not lenient.)
     drive = os.path.splitdrive(str(tmp_path))[0].upper()
     other = "D:" if drive != "D:" else "E:"
     target = tmp_path / "t.txt"
