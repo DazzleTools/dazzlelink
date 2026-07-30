@@ -226,9 +226,7 @@ Dazzlelink has a modular architecture:
 
 - `dazzlelink.config`: Configuration management
 
-- `dazzlelink.data`: Data handling for dazzlelink files
-
-- `dazzlelink.path`: Path handling and UNC path conversion
+- `dazzlelink.data`: Data handling for dazzlelink files (the record model lives in the `dazzle-linklib` library)
 
 - `dazzlelink.operations`: Core operations for working with symlinks
   - `operations.core`: Main DazzleLink class
@@ -236,6 +234,8 @@ Dazzlelink has a modular architecture:
   - `operations.batch`: Batch processing of multiple links
   - `operations.timestamps`: Timestamp preservation
   - `operations.recreate`: Symlink recreation from dazzlelinks
+
+Path identity (UNC/drive/subst conversion) and representation building live down the DazzleLib stack: `unctools` (L0) and `dazzle-linklib` (L2). The tool consumes them; it no longer carries its own copies.
 
 This modular design allows for better extensibility and enables using specific components in other projects.
 
