@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.10.0] - 2026-07-30
+
+**Milestone: portable cross-references delivered** (issues #13 + #24; the collabN-local portable-paths design). Records created anywhere now carry — and can re-derive — the path forms that survive machine changes: relative (synced trees), UNC/drive (network bases), and subst expansions.
+
+### Added
+- `execute` performs **live re-resolution**: every stored form is re-derived against the *executing* machine's current drive/UNC/subst mappings (via dazzle-linklib's resolver walk + unctools' kinded `path_variants`), so a base that died since creation can resolve through whatever this machine maps today (#24).
+- `create` stores **subst expansions**: a target on a subst'd drive records the underlying real path (`subst_path`), so the record outlives the alias (#24).
+- Execute failure output now lists **exactly what was tried, in resolution order** (the resolver's own candidate walk), replacing the three-line summary.
+
+### Changed
+- `serialize_link` builds both `path_representations` (link) and `target_representations` (target, incl. the relative form anchored at the record's directory) via dazzle-linklib's `path_family` — one home for representation building across the stack. A symlink authored with a relative target still keeps its own relative form verbatim.
+- `execute` parses records via dazzle-linklib's `from_file` (plain JSON, legacy flat, and polyglot executable forms — behavior-pinned by a regression test) and resolves via `resolve_target(base_dir=record_dir)`: relative resolution is now anchored at the record file's directory by construction.
+- Resolution order is the documented priority heuristic `absolute → relative → unc → drive → subst`, matching the shipped fallback semantics.
+- Requires `dazzle-linklib>=0.3.0` (which requires `unctools>=0.3.0`).
+
+### Removed
+- `src/dazzlelink/path.py` (`UNCAdapter`) — the tool's private drive↔UNC mapper, superseded at the proper stack layers (STACK-MAP V2 closed). It parsed `net use` output only; the replacements cover NetUseEnum + WNet provider enrichment + subst. Replacement map for each removed public symbol: `UNCAdapter`/`get_unc_adapter` → `unctools.converter.UNCConverter` (or the module-level functions); `convert_to_unc` → `unctools.convert_to_unc`; `convert_to_drive` → `unctools.convert_to_local`; `refresh_mappings` → `unctools.refresh_mappings`; `normalize_path` → the explicit `unctools.convert_to_unc`/`convert_to_local` (the direction-switch wrapper was retired stack-wide); representation building → `dazzle_linklib.path_family`.
+
+### Deprecated
+- Execute's final fallback (probing the **link's** own `path_representations` for an openable path) — it opens the link file's old location, not the target. Kept this release so the resolver delegation and the probe removal stay separately attributable; removal slated for the next minor.
+
 ## [0.9.1] - 2026-06-20
 
 ### Changed

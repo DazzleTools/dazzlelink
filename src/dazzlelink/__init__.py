@@ -29,14 +29,10 @@ if not logger.handlers:
 from .exceptions import DazzleLinkException
 from .data import DazzleLinkData
 from .config import DazzleLinkConfig
-from .path import (
-    UNCAdapter,
-    get_unc_adapter,
-    convert_to_drive,
-    convert_to_unc,
-    normalize_path,
-    refresh_mappings
-)
+# 0.10.0 (STACK-MAP V2 closed): the tool's UNCAdapter/path module is deleted.
+# Path identity lives in unctools (convert_to_unc / convert_to_local /
+# get_mappings / refresh_mappings / path_variants); representation building
+# lives in dazzle-linklib (path_family / populate_locators).
 from .operations import (
     DazzleLink,
     create_windows_symlink,
@@ -276,15 +272,7 @@ __all__ = [
     'DazzleLinkData',
     'DazzleLinkConfig',
     'DazzleLink',
-    'UNCAdapter',
-    
-    # Path functions
-    'get_unc_adapter',
-    'convert_to_drive',
-    'convert_to_unc',
-    'normalize_path',
-    'refresh_mappings',
-    
+
     # High-level functions
     'export_link',
     'import_link',

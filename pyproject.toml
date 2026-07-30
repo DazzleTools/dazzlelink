@@ -33,7 +33,9 @@ requires-python = ">=3.10"
 dependencies = [
     "pywin32>=223; sys_platform == 'win32'",
     # The link-record core lives in dazzle-linklib (L2); the tool consumes it.
-    "dazzle-linklib>=0.2.0",
+    # >=0.3.0: path_family / populate_locators + resolve_target(variants=,
+    # base_dir=) -- the portable-paths surface 0.10.0 delegates to.
+    "dazzle-linklib>=0.3.0",
 ]
 
 [project.optional-dependencies]

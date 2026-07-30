@@ -21,8 +21,12 @@ from typing import Dict, List, Optional, Tuple, Union, Any
 from ..exceptions import DazzleLinkException
 from ..data import DazzleLinkData
 from ..config import DazzleLinkConfig
-from ..path import UNCAdapter, get_unc_adapter
 from . import links
+
+# Path-representation building is dazzle-linklib's job (L2 path_family, backed
+# by unctools' kinded path_variants) -- the tool's own UNCAdapter died with it
+# (STACK-MAP V2 closed in 0.10.0).
+from dazzle_linklib import path_family
 
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
@@ -45,103 +49,7 @@ class DazzleLink:
     def __init__(self, config=None):
         self.platform = 'windows' if os.name == 'nt' else 'linux'
         self.config = config or DazzleLinkConfig()
-        
-        # Initialize UNC adapter for path conversions
-        self._initialize_unc_adapter()
-    
-    def _initialize_unc_adapter(self):
-        """Initialize the UNC adapter if on Windows and not already initialized"""
-        if os.name == 'nt' and not hasattr(self, '_unc_adapter'):
-            try:
-                # Use the UNCAdapter from the path module
-                self._unc_adapter = get_unc_adapter()
-                debug_print("Initialized UNC adapter")
-            except Exception as e:
-                debug_print(f"Failed to initialize UNC adapter: {e}")
-                self._unc_adapter = None
 
-    def _get_path_representations(self, path):
-        """
-        Get all representations of a path (UNC and drive letter)
-        
-        Args:
-            path (str or Path): The path to get representations for
-            
-        Returns:
-            dict: Dictionary containing the original path and normalized versions
-        """
-        path_obj = Path(path)
-        
-        # Initialize with the original path
-        representations = {
-            "original_path": str(path_obj),
-        }
-        
-        # Add normalized versions on Windows
-        if os.name == 'nt':
-            # Initialize UNC adapter if needed
-            if not hasattr(self, '_unc_adapter') or self._unc_adapter is None:
-                try:
-                    self._initialize_unc_adapter()
-                except Exception as e:
-                    debug_print(f"Failed to initialize UNC adapter: {e}")
-                    return representations
-            
-            # If UNC adapter is available, add normalized representations
-            if hasattr(self, '_unc_adapter') and self._unc_adapter is not None:
-                try:
-                    # Add UNC path
-                    unc_path = self._unc_adapter.drive_to_unc(path_obj)
-                    if str(unc_path) != str(path_obj):
-                        representations["unc_path"] = str(unc_path)
-                    
-                    # Add drive path
-                    drive_path = self._unc_adapter.unc_to_drive(path_obj)
-                    if str(drive_path) != str(path_obj):
-                        representations["drive_path"] = str(drive_path)
-                except Exception as e:
-                    debug_print(f"Failed to get path representations: {e}")
-        
-        return representations
-
-    def _normalize_path(self, path, to_unc=False):
-        """
-        Normalize a path between UNC and drive letter formats
-        
-        Args:
-            path (str or Path): The path to normalize
-            to_unc (bool): If True, convert to UNC path; if False, convert to drive letter
-            
-        Returns:
-            Path: The normalized path
-        """
-        # If not on Windows, return the path unchanged
-        if os.name != 'nt':
-            return Path(path)
-            
-        # Initialize UNC adapter if needed
-        if not hasattr(self, '_unc_adapter') or self._unc_adapter is None:
-            try:
-                self._initialize_unc_adapter()
-            except Exception as e:
-                debug_print(f"Failed to initialize UNC adapter: {e}")
-                return Path(path)
-        
-        # If UNC adapter is not available, return the path unchanged
-        if not hasattr(self, '_unc_adapter') or self._unc_adapter is None:
-            return Path(path)
-            
-        # Convert the path
-        try:
-            path_obj = Path(path)
-            if to_unc:
-                return self._unc_adapter.drive_to_unc(path_obj)
-            else:
-                return self._unc_adapter.unc_to_drive(path_obj)
-        except Exception as e:
-            debug_print(f"Path normalization failed: {e}")
-            return Path(path)
-    
     def serialize_link(self, link_path, output_path=None, make_executable=None, mode=None, require_symlink=True):
         """
         Serialize a symbolic link to a .dazzlelink file
@@ -185,21 +93,11 @@ class DazzleLink:
             raise DazzleLinkException(f"{link_path} is not a symbolic link")
         
         try:
-            # Initialize UNC methods if needed
-            if not hasattr(self, '_initialize_unc_adapter'):
-                self._initialize_unc_adapter = lambda: None
-                self._get_path_representations = lambda path: {"original_path": str(path)}
-            else:
-                # If methods exist but need initialization, initialize them
-                self._initialize_unc_adapter()
-            
-            # Get path representations for UNC path handling
-            if hasattr(self, '_get_path_representations'):
-                path_representations = self._get_path_representations(link_path)
-                debug_print(f"Path representations: {path_representations}")
-            else:
-                path_representations = {"original_path": str(link_path)}
-            
+            # The link's own representation family: no relative form by design
+            # (base_dir omitted) -- unc/drive/subst variants via L2 + unctools.
+            path_representations = path_family(str(link_path))
+            debug_print(f"Path representations: {path_representations}")
+
             # If it's a symlink, get the target
             if is_symlink:
                 target_path = os.readlink(link_path)
@@ -220,30 +118,19 @@ class DazzleLink:
                 original_relative_target = None
                 debug_print(f"Not a symlink, using path as target: {target_path}")
             
-            # Get target path representations for UNC path handling
-            if hasattr(self, '_get_path_representations'):
-                target_representations = self._get_path_representations(target_path)
-                debug_print(f"Target representations: {target_representations}")
-            else:
-                target_representations = {"original_path": str(target_path)}
+            # The target's portable path family: relative anchored at the
+            # .dazzlelink file's directory + unc/drive/subst variants (L2
+            # path_family; the record is fresh, so no refresh semantics apply).
+            output_dir = (os.path.dirname(os.path.abspath(str(output_path)))
+                          if output_path else os.path.dirname(os.path.abspath(str(link_path))))
+            target_representations = path_family(str(target_path), base_dir=output_dir)
+            debug_print(f"Target representations: {target_representations}")
 
-            # Compute and store relative path for portability
-            # This allows dazzlelinks to work across machines with different mount points
+            # A symlink that was AUTHORED with a relative target keeps its own
+            # relative form (structural intent beats the recomputed one).
             if original_relative_target:
-                # Preserve the original relative path from the symlink
                 target_representations["relative_path"] = original_relative_target
                 debug_print(f"Preserved original relative target: {original_relative_target}")
-            else:
-                # Compute relative path from dazzlelink location to target
-                try:
-                    output_dir = os.path.dirname(os.path.abspath(str(output_path))) if output_path else os.path.dirname(os.path.abspath(str(link_path)))
-                    computed_relative = os.path.relpath(target_path, output_dir)
-                    target_representations["relative_path"] = computed_relative
-                    debug_print(f"Computed relative path: {computed_relative}")
-                except ValueError:
-                    # os.path.relpath fails across drives on Windows
-                    debug_print("Cannot compute relative path (cross-drive)")
-                    pass
             
             # Create a new DazzleLinkData instance
             link_data = DazzleLinkData()

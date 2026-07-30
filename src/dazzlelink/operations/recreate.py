@@ -13,6 +13,12 @@ from typing import Dict, List, Optional, Tuple, Union, Any
 
 from ..exceptions import DazzleLinkException
 from dazzle_linklib import recreate_link as _linklib_recreate_link
+from dazzle_linklib import DazzleLinkData as _LinklibRecord
+from dazzle_linklib import default_path_variants as _default_path_variants
+from dazzle_linklib import resolve_target as _resolve_target
+# _iter_candidates is the resolver's own walk -- api.md blesses consumer use
+# for diagnostics (the "what was tried, in what order" failure output).
+from dazzle_linklib.resolver import _iter_candidates
 
 # Add debugging support
 VERBOSE = os.environ.get('DAZZLELINK_VERBOSE', '0') == '1'
@@ -79,55 +85,24 @@ def execute_dazzlelink(dazzlelink_path, mode=None, config_override=None):
             If provided, its settings take precedence over the file's embedded configuration
     """
     try:
-        # First try to detect if it's a script or JSON format
-        with open(dazzlelink_path, 'r', encoding='utf-8-sig') as f:
-            # IMPORTANT: do NOT shell-execute an executable (script-format)
-            # dazzlelink here. On Windows, running the .dazzlelink file through the
-            # shell invokes the .dazzlelink file association -- which is itself
-            # `dazzlelink execute` -- producing unbounded recursion (a fork bomb).
-            # Both plain and executable dazzlelinks carry the same JSON (executable
-            # ones embed it after the DAZZLELINK_DATA_BEGIN marker); we parse it and
-            # open the target directly below, identically for both formats.
-            try:
-                f.seek(0)
-                import json
-                link_data = json.load(f)
-            except json.JSONDecodeError:
-                # Executable (script-format) dazzlelink: extract the JSON embedded
-                # after the data marker. Match the marker as an exact LINE -- the
-                # literal "# DAZZLELINK_DATA_BEGIN" also appears inside the script's
-                # own Python source (the code that reads the marker), so a naive
-                # substring search would grab that earlier occurrence and parse the
-                # script body as JSON. This mirrors how the generated script's own
-                # main() locates the marker.
-                f.seek(0)
-                content = f.read()
-                json_text = None
-                lines = content.splitlines(keepends=True)
-                for i, line in enumerate(lines):
-                    if line.strip() == '# DAZZLELINK_DATA_BEGIN':
-                        json_text = ''.join(lines[i + 1:])
-                        break
+        # Parse via the library's record reader (plain JSON, legacy flat, and
+        # the polyglot executable form -- exact-line marker, utf-8-sig).
+        # IMPORTANT: never shell-execute an executable (script-format)
+        # dazzlelink here. On Windows, running the .dazzlelink file through the
+        # shell invokes the .dazzlelink file association -- which is itself
+        # `dazzlelink execute` -- producing unbounded recursion (a fork bomb).
+        # Both formats carry the same JSON; we read it and open the target
+        # directly below, identically for both.
+        record = _LinklibRecord.from_file(dazzlelink_path)
+        link_data = record.to_dict()
 
-                if json_text is not None:
-                    try:
-                        link_data = json.loads(json_text)
-                    except json.JSONDecodeError:
-                        raise DazzleLinkException(f"Cannot parse embedded JSON in {dazzlelink_path}")
-                else:
-                    raise DazzleLinkException(f"Invalid dazzlelink format in {dazzlelink_path}")
-        
-        # Handle both old and new schema formats
-        if "target_path" in link_data:
-            # Old format
-            target_path = link_data["target_path"]
-            default_mode = link_data.get("default_mode", "info")
-        elif "link" in link_data and "target_path" in link_data["link"]:
-            # New format
-            target_path = link_data["link"]["target_path"]
-            default_mode = link_data.get("config", {}).get("default_mode", "info")
-        else:
+        target_path = record.get_target_path()
+        if not target_path:
             raise DazzleLinkException(f"Invalid dazzlelink format in {dazzlelink_path}")
+        # Legacy flat records stored default_mode at the top level; the nested
+        # form lives under config (record accessor). Mode precedence itself is
+        # tool policy and stays here.
+        default_mode = link_data.get("default_mode") or record.get_default_mode()
         
         # Use mode precedence (matches the monolith): the file knows best what it
         # wants, the CLI always wins, and the global/directory config is only a
@@ -183,45 +158,44 @@ def execute_dazzlelink(dazzlelink_path, mode=None, config_override=None):
                     print(f"  Size: {_format_size(target_info['size'])} (at creation)")
 
         elif execute_mode == "open" or execute_mode == "auto":
-            resolved_path = target_path
+            # Resolution is the library's walk (priority order: path ->
+            # relative -> unc -> drive -> subst -> ...), with relative locators
+            # anchored at the record file's directory and LIVE RE-RESOLUTION:
+            # each candidate is re-derived against THIS machine's current
+            # drive/UNC/subst mappings (issue #24), so a base stored dead on
+            # the creating machine can resolve via the form this machine maps.
+            base_dir = os.path.dirname(os.path.abspath(dazzlelink_path))
+            hit = _resolve_target(
+                record, base_dir=base_dir, variants=_default_path_variants
+            )
+            resolved_path = hit["value"] if hit else None
 
-            # Fallback chain for resolving the target path
-            if not os.path.exists(resolved_path):
-                # Fallback 1: Try relative path from dazzlelink file's directory
-                target_reps = {}
-                if "link" in link_data:
-                    target_reps = link_data["link"].get("target_representations", {})
-                relative_path = target_reps.get("relative_path")
-
-                if relative_path:
-                    dazzlelink_dir = os.path.dirname(os.path.abspath(dazzlelink_path))
-                    candidate = os.path.normpath(os.path.join(dazzlelink_dir, relative_path))
-                    if os.path.exists(candidate):
+            if resolved_path is None:
+                # DEPRECATED fallback (removal slated for the next minor):
+                # probe the LINK's own stored path_representations. Dubious --
+                # it opens the link file's old location, not the target -- but
+                # kept one release so the delegation and the probe removal stay
+                # separately attributable.
+                path_reps = link_data.get("link", {}).get("path_representations", {}) or {}
+                for key, candidate in path_reps.items():
+                    if isinstance(candidate, str) and candidate and os.path.exists(candidate):
+                        debug_print(f"Resolved via deprecated link path_representations[{key}]")
                         resolved_path = candidate
+                        break
 
-                # Fallback 2: Try other path representations (UNC, drive letter)
-                if not os.path.exists(resolved_path):
-                    for key in ("unc_path", "drive_path", "original_path"):
-                        candidate = target_reps.get(key)
-                        if candidate and os.path.exists(candidate):
-                            resolved_path = candidate
-                            break
-
-                # Fallback 3: Try path_representations from link section
-                if not os.path.exists(resolved_path) and "link" in link_data:
-                    path_reps = link_data["link"].get("path_representations", {})
-                    for key, candidate in path_reps.items():
-                        if isinstance(candidate, str) and os.path.exists(candidate):
-                            resolved_path = candidate
-                            break
-
-                if not os.path.exists(resolved_path):
-                    raise DazzleLinkException(
-                        f"Target not found. Tried:\n"
-                        f"  Absolute: {target_path}\n"
-                        f"  Relative: {relative_path or '(not stored)'}\n"
-                        f"  Representations: {list(target_reps.keys())}"
+            if resolved_path is None:
+                # Diagnostic parity: list exactly what the resolver tried, in
+                # order, by re-walking the same candidate generator.
+                tried = [
+                    candidate
+                    for _loc, candidate in _iter_candidates(
+                        record, base_dir=base_dir, variants=_default_path_variants
                     )
+                ]
+                tried_lines = "\n".join(f"  {c}" for c in tried) or "  (no candidates)"
+                raise DazzleLinkException(
+                    f"Target not found. Tried (in resolution order):\n{tried_lines}"
+                )
 
             # Open the resolved target
             if os.name == 'nt':
