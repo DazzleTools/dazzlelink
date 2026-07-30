@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "created_by": "DazzleLink v1",
+  "creation_timestamp": 1785425495.293238,
+  "creation_date": "2026-07-30T11:31:35.293238",
+  "dazzlelink_metadata": {
+    "last_updated_timestamp": 1785425495.293238,
+    "last_updated_date": "2026-07-30T11:31:35.293238",
+    "update_history": [
+      "initial_creation"
+    ]
+  },
+  "link": {
+    "original_path": "C:\\code\\dazzlelink\\tests\\one-offs\\xmachine\\neighbor.txt",
+    "path_representations": {
+      "original_path": "C:\\code\\dazzlelink\\tests\\one-offs\\xmachine\\neighbor.txt"
+    },
+    "target_path": "C:\\code\\dazzlelink\\tests\\one-offs\\xmachine\\neighbor.txt",
+    "target_representations": {
+      "original_path": "C:\\code\\dazzlelink\\tests\\one-offs\\xmachine\\neighbor.txt",
+      "relative_path": "neighbor.txt"
+    },
+    "type": "file",
+    "relative_path": false,
+    "timestamps": {
+      "created": 1785425494.857764,
+      "modified": 1785425494.857764,
+      "accessed": 1785425494.857764,
+      "created_iso": "2026-07-30T11:31:34.857764",
+      "modified_iso": "2026-07-30T11:31:34.857764",
+      "accessed_iso": "2026-07-30T11:31:34.857764"
+    },
+    "attributes": {
+      "hidden": false,
+      "system": false,
+      "readonly": false
+    }
+  },
+  "target": {
+    "exists": true,
+    "type": "file",
+    "size": 29,
+    "checksum": "fbb521a76379b06aeb47c1e666d7aee2",
+    "extension": ".txt",
+    "timestamps": {
+      "created": 1785425494.857764,
+      "modified": 1785425494.857764,
+      "accessed": 1785425494.857764,
+      "created_iso": "2026-07-30T11:31:34.857764",
+      "modified_iso": "2026-07-30T11:31:34.857764",
+      "accessed_iso": "2026-07-30T11:31:34.857764"
+    }
+  },
+  "security": {
+    "permissions": null,
+    "owner": null,
+    "group": null,
+    "owner_id": 0,
+    "windows_security": "Available but not implemented"
+  },
+  "config": {
+    "default_mode": "info",
+    "platform": "windows"
+  }
+}

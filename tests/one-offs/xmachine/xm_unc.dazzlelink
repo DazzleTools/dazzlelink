@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "created_by": "DazzleLink v1",
+  "creation_timestamp": 1785425495.057314,
+  "creation_date": "2026-07-30T11:31:35.057314",
+  "dazzlelink_metadata": {
+    "last_updated_timestamp": 1785425495.057314,
+    "last_updated_date": "2026-07-30T11:31:35.057314",
+    "update_history": [
+      "initial_creation"
+    ]
+  },
+  "link": {
+    "original_path": "J:\\dazzlelink\\README.md",
+    "path_representations": {
+      "original_path": "J:\\dazzlelink\\README.md",
+      "unc_path": "\\\\aktuldjr\\code\\dazzlelink\\README.md"
+    },
+    "target_path": "J:\\dazzlelink\\README.md",
+    "target_representations": {
+      "original_path": "J:\\dazzlelink\\README.md",
+      "unc_path": "\\\\aktuldjr\\code\\dazzlelink\\README.md"
+    },
+    "type": "file",
+    "relative_path": false,
+    "timestamps": {
+      "created": 1743187299.8487573,
+      "modified": 1785369418.3699093,
+      "accessed": 1785369439.6191368,
+      "created_iso": "2025-03-28T14:41:39.848757",
+      "modified_iso": "2026-07-29T19:56:58.369909",
+      "accessed_iso": "2026-07-29T19:57:19.619137"
+    },
+    "attributes": {
+      "hidden": false,
+      "system": false,
+      "readonly": false
+    }
+  },
+  "target": {
+    "exists": true,
+    "type": "file",
+    "size": 11427,
+    "checksum": "0538cde19a3f0584d6a5d3c453565611",
+    "extension": ".md",
+    "timestamps": {
+      "created": 1743187299.8487573,
+      "modified": 1785369418.3699093,
+      "accessed": 1785369439.6191368,
+      "created_iso": "2025-03-28T14:41:39.848757",
+      "modified_iso": "2026-07-29T19:56:58.369909",
+      "accessed_iso": "2026-07-29T19:57:19.619137"
+    }
+  },
+  "security": {
+    "permissions": null,
+    "owner": null,
+    "group": null,
+    "owner_id": 0,
+    "windows_security": "Available but not implemented"
+  },
+  "config": {
+    "default_mode": "info",
+    "platform": "windows"
+  }
+}
