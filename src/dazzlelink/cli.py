@@ -66,16 +66,24 @@ def _locality_epilog() -> str:
         lines.append(
             f"  {level:<11} {LOCALITY_CONTINUUM.rank(level):>+3}   {reach_of(level)}"
         )
+    # One complete statement per line: the epilog renders VERBATIM (Raw
+    # formatter), so flowed/hard-wrapped prose looks broken next to argparse's
+    # own width-reflowed help text. Legend lines only.
     reach_aliases = ", ".join(f"{a} -> {r}" for a, r in REACH_ALIASES.items())
-    scheme_aliases = ", ".join(f"{a} -> {r}" for a, r in SCHEME_ALIASES.items())
+    by_rung = {}
+    for alias, rung in SCHEME_ALIASES.items():
+        by_rung.setdefault(rung, []).append(alias)
+    scheme_aliases = "; ".join(
+        f"{', '.join(names)} -> {rung}" for rung, names in by_rung.items()
+    )
     lines += [
         "",
-        f"  reach aliases:  {reach_aliases}",
-        f"  scheme aliases: {scheme_aliases}",
+        f"  reach aliases:   {reach_aliases}",
+        f"  scheme aliases:  {scheme_aliases}",
+        "  kind spellings:  any other word selects that locator KIND (open-ended)",
         "",
-        "  any other spelling selects a locator KIND directly (ftp, ssh, gopher,",
-        "  s3, ... -- open-ended); --prefer reorders and keeps everything else as",
-        "  fallback; --only restricts to the selection.",
+        "  --prefer reorders candidates, keeping the rest as fallback.",
+        "  --only restricts to the selection.",
     ]
     return "\n".join(lines)
 
