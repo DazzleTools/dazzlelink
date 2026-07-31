@@ -7,8 +7,10 @@ Dazzlelink is a cross-platform tool that exports, imports, and manages symbolic 
 [![PyPI](https://img.shields.io/pypi/v/dazzlelink?color=green)](https://pypi.org/project/dazzlelink/)
 [![Release Date](https://img.shields.io/github/release-date/DazzleTools/dazzlelink?color=green)](https://github.com/DazzleTools/dazzlelink/releases)
 [![CI](https://github.com/DazzleTools/dazzlelink/actions/workflows/python.yml/badge.svg)](https://github.com/DazzleTools/dazzlelink/actions/workflows/python.yml)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/dazzlelink?period=total&units=international_system&left_color=black&right_color=green&left_text=downloads)](https://pypistats.org/packages/dazzlelink)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-green.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
+[![GitHub Discussions](https://img.shields.io/github/discussions/DazzleTools/dazzlelink)](https://github.com/DazzleTools/dazzlelink/discussions)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20BSD-lightgrey.svg)](https://github.com/DazzleTools/dazzlelink)
 
 ![Dazzlelink example workflow](examples/workflow.png)
