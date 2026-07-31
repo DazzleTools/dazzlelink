@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.11.0] - 2026-07-30
+
+**Milestone: multi-target dazzlelinks** (issue #25). One record now carries a local path AND a web URL — and the user CHOOSES which copy to open via a rung on the locality ladder. One `.dazzlelink` replaces the `.dazzlelink` + `.url` pair.
+
+### Added
+- `create --also-url <URL>` (repeatable): records web URLs alongside the local path family. Values must be scheme-form (`https://host/file`); a typo fails at create, not at open.
+- `execute --prefer <rung|reach>`: prefer targets nearest a locality rung (`file`, `unc`, `internet`, ...) or reach alias (`local`, `local-network`, `remote`). A preference, not a filter — everything else stays as fallback. `--prefer remote` opens the URL even when the local copy exists.
+- `execute --only <rung|reach>`: restrict to targets on that rung/reach; a miss errors cleanly, naming the reaches the record actually has.
+- `execute --kind <k>` (repeatable): restrict to exact locator kinds (e.g. `url`, `path`).
+- `execute --target N`: open exactly the locator numbered `[N]` by `--mode info`; out-of-range errors name the valid range. Conflicts with the selector flags (the error names every offender and acts on nothing).
+- `--mode info` now lists **all targets** the record carries — numbered `[N]` (the `--target` address space) with kind and locality rung — plus the `Would open:` line computed by the same walk `--mode open` runs, with **zero network I/O** (web URLs are never probed for display).
+- `execute --help` carries the locality-ladder legend, derived at runtime from the library's axis so it can never drift from the actual ladder.
+
+### Changed
+- `execute` judges reachability scheme-aware: filesystem candidates by existence, scheme-form candidates (`https://...`, `ipfs://...`) assumed openable — whether a scheme opens is the OS handler's business at open time. Records mixing paths and URLs fall back local → web naturally; path-only records behave exactly as before.
+- Requires `dazzle-linklib>=0.4.0` (the locality axis + selection + `SchemeAwareReachability`).
+
+### Deprecated
+- (carried from 0.10.0) Execute's final fallback probing the **link's** own `path_representations` — now additionally skipped whenever a selector (`--prefer`/`--only`/`--kind`) narrowed the walk, so a filtered miss can't leak to the link file's old location. Removal still slated for the next minor.
+
 ## [0.10.0] - 2026-07-30
 
 **Milestone: portable cross-references delivered** (issues #13 + #24; the collabN-local portable-paths design). Records created anywhere now carry — and can re-derive — the path forms that survive machine changes: relative (synced trees), UNC/drive (network bases), and subst expansions.

@@ -104,6 +104,26 @@ dazzlelink convert /path/to/directory --recursive
 dazzlelink mirror /source/directory /destination/directory
 ```
 
+### Multi-target links (local file + web URL)
+
+One record can carry the local copy AND its web address — no more `.dazzlelink` + `.url` pairs:
+
+```bash
+# Record the local path family plus the publisher's URL (repeatable)
+dazzlelink create --also-url https://example.org/paper.pdf paper.pdf paper.pdf.dazzlelink
+
+# Opens the local copy; falls back to the URL if the file is gone
+dazzlelink execute --mode open paper.pdf.dazzlelink
+
+# Prefer the web copy even while the local file exists
+dazzlelink execute --mode open --prefer remote paper.pdf.dazzlelink
+
+# List every target, numbered, with the locality rung and the would-open winner
+dazzlelink execute --mode info paper.pdf.dazzlelink
+```
+
+`--prefer`/`--only` take a rung on the locality ladder (`file`, `unc`, `internet`, ...) or a reach alias (`local`, `local-network`, `remote`) — see `dazzlelink execute --help` for the full ladder. `--target N` opens exactly the locator numbered by `info`.
+
 ## Command Reference
 
 The full command reference is available in [`docs/COMMAND_REFERENCE.md`](https://github.com/djdarcy/dazzlelink/blob/main/docs/COMMAND_REFERENCE.md)

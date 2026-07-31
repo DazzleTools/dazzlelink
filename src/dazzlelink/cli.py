@@ -13,6 +13,20 @@ from pathlib import Path
 from typing import List, Optional, Any, Dict, Tuple
 
 from ._version import get_base_version
+# The locality axis (dazzle-linklib 0.4.0, issue #25): --prefer/--only take a
+# rung on this ladder (or a reach alias), validated at runtime -- never via
+# argparse choices=, because the axis vocabulary widens (house convention).
+from dazzle_linklib import (
+    LOCALITY_CONTINUUM,
+    REACH_ALIASES,
+    reach_of,
+    resolve_rung,
+    DazzleLinkError as _LinklibError,
+)
+# The exact scheme-form test SchemeAwareReachability applies at execute time.
+# Imported (not copied) so create-side --also-url validation and execute-side
+# classification can never drift apart.
+from dazzle_linklib.resolver import _SCHEME_RE as _URL_SCHEME_RE
 from . import (
     __version__,
     DazzleLinkConfig,
@@ -33,6 +47,34 @@ from . import (
     enable_verbose_logging,
     DazzleLinkException
 )
+
+def _locality_epilog() -> str:
+    """The locality-ladder legend for ``execute --help``.
+
+    Derived from LOCALITY_CONTINUUM at runtime so the help can never drift
+    from the library's actual ladder (the dazzlecmd rung-table pattern).
+    Displayed warm-first: local possession at the top, the machine boundary
+    at rank 0, network reaches below it.
+    """
+    lines = [
+        "locality ladder (--prefer / --only take a rung or a reach alias):",
+        "",
+        "  rung        rank  reach",
+    ]
+    for level in reversed(LOCALITY_CONTINUUM.levels()):
+        lines.append(
+            f"  {level:<11} {LOCALITY_CONTINUUM.rank(level):>+3}   {reach_of(level)}"
+        )
+    aliases = ", ".join(f"{alias} -> {rung}" for alias, rung in REACH_ALIASES.items())
+    lines += [
+        "",
+        f"  reach aliases: {aliases}",
+        "",
+        "  --prefer reorders candidates by rank-distance from the rung and keeps",
+        "  everything else as fallback; --only restricts to the rung or reach.",
+    ]
+    return "\n".join(lines)
+
 
 def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
@@ -72,9 +114,15 @@ For more information, see https://github.com/djdarcy/dazzlelink
                               help='Make the dazzlelink executable')
     create_parser.add_argument('--mode', '-m', choices=['info', 'open', 'auto'],
                               help='Default execution mode for this dazzlelink')
+    create_parser.add_argument('--also-url', action='append', metavar='URL',
+                              dest='also_url',
+                              help='Also record a web URL for the target (repeatable). '
+                                   'The record then carries the local path AND the URL: '
+                                   'execute opens the local copy and falls back to the '
+                                   'URL, or --prefer remote flips that choice')
     create_parser.add_argument('--config-level', choices=['global', 'directory', 'file'],
                              default='file', help='Configuration level to use')
-    
+
     # Export command
     export_parser = subparsers.add_parser('export', help='Export a symlink to a dazzlelink')
     export_parser.add_argument('link_path', help='Path to the symlink')
@@ -146,10 +194,30 @@ For more information, see https://github.com/djdarcy/dazzlelink
                              default='file', help='Configuration level to use')
     
     # Execute command
-    execute_parser = subparsers.add_parser('execute', help='Execute/open the target of a dazzlelink')
+    execute_parser = subparsers.add_parser(
+        'execute', help='Execute/open the target of a dazzlelink',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_locality_epilog())
     execute_parser.add_argument('dazzlelink_path', help='Path to the dazzlelink')
     execute_parser.add_argument('--mode', '-m', choices=['info', 'open', 'auto'],
                               help='Override execution mode for this execution')
+    # Locality selectors (issue #25). Deliberately NO argparse choices= on
+    # --prefer/--only: the rung vocabulary widens with the axis, so validation
+    # happens at runtime (dazzle_linklib.resolve_rung) and the help legend in
+    # the epilog is derived from the axis itself.
+    execute_parser.add_argument('--prefer', metavar='RUNG',
+                              help='Prefer targets nearest this locality rung or reach '
+                                   'alias (see ladder below); everything else stays as '
+                                   'fallback. Default: local-first')
+    execute_parser.add_argument('--only', metavar='RUNG',
+                              help='Restrict to targets on this locality rung or reach '
+                                   'alias; error if the record has none there')
+    execute_parser.add_argument('--kind', action='append', metavar='KIND',
+                              help='Restrict to locators of this exact kind, e.g. url '
+                                   'or path (repeatable)')
+    execute_parser.add_argument('--target', type=int, metavar='N', dest='target_index',
+                              help='Open exactly locator [N] as numbered by --mode info '
+                                   '(conflicts with --prefer/--only/--kind)')
     execute_parser.add_argument('--config-level', choices=['global', 'directory', 'file'],
                              default='file', help='Configuration level to use')
     
@@ -264,18 +332,30 @@ def main(args=None) -> int:
             if hasattr(parsed_args, 'mode') and parsed_args.mode is not None:
                 config.set('default_mode', parsed_args.mode)
                 
+            # --also-url values must be scheme-form (https://host/...): the
+            # same form test SchemeAwareReachability applies at execute time,
+            # checked HERE so a typo fails at create, not at open.
+            also_urls = getattr(parsed_args, 'also_url', None) or []
+            malformed = [u for u in also_urls if not _URL_SCHEME_RE.match(u)]
+            if malformed:
+                print("ERROR: --also-url expects scheme-form URLs "
+                      "(e.g. https://host/file): " + ", ".join(malformed),
+                      file=sys.stderr)
+                return 1
+
             link_path = os.path.abspath(parsed_args.link_name)
             target_path = os.path.abspath(parsed_args.target)
-            
+
             # Create parent directory if needed
             os.makedirs(os.path.dirname(link_path), exist_ok=True)
-            
+
             # Create the dazzlelink
             dazzlelink_path = create_link(
                 target_path,
                 link_path,
                 make_executable=parsed_args.executable if hasattr(parsed_args, 'executable') else None,
-                mode=parsed_args.mode if hasattr(parsed_args, 'mode') else None
+                mode=parsed_args.mode if hasattr(parsed_args, 'mode') else None,
+                also_urls=also_urls or None
             )
             
             print(f"Created dazzlelink: {dazzlelink_path}")
@@ -454,11 +534,45 @@ def main(args=None) -> int:
                     dlink_dir = os.path.dirname(os.path.abspath(parsed_args.dazzlelink_path))
                     config.load_directory_config(dlink_dir)
                 # 'file' level uses the dazzlelink's embedded configuration
-            
+
+            # --target pins one exact locator; the selector flags shape the
+            # walk. Pin + selection is a contradiction -- refuse, naming ALL
+            # offenders and acting on nothing (post-parse mutex: argparse
+            # cannot express a conflict across value-bearing flags).
+            selectors_used = [
+                flag for flag, value in (
+                    ('--prefer', parsed_args.prefer),
+                    ('--only', parsed_args.only),
+                    ('--kind', parsed_args.kind),
+                ) if value
+            ]
+            if parsed_args.target_index is not None and selectors_used:
+                print("ERROR: --target pins an exact locator and cannot combine "
+                      "with " + ", ".join(selectors_used)
+                      + " -- drop the pin or the selector(s) (nothing was opened)",
+                      file=sys.stderr)
+                return 1
+
+            # Runtime rung validation (no argparse choices= -- the axis
+            # vocabulary widens); the library's error names every valid rung
+            # and reach alias.
+            for flag, value in (('--prefer', parsed_args.prefer),
+                                ('--only', parsed_args.only)):
+                if value is not None:
+                    try:
+                        resolve_rung(value)
+                    except _LinklibError as e:
+                        print(f"ERROR: {flag}: {e}", file=sys.stderr)
+                        return 1
+
             execute(
                 parsed_args.dazzlelink_path,
                 mode=parsed_args.mode if hasattr(parsed_args, 'mode') else None,
-                config_override=config
+                config_override=config,
+                prefer=parsed_args.prefer,
+                only=parsed_args.only,
+                kinds=parsed_args.kind,
+                target_index=parsed_args.target_index
             )
             
         elif parsed_args.command == 'config':

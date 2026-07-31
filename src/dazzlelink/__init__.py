@@ -101,26 +101,30 @@ def import_link(dazzlelink_path, target_location=None, timestamp_strategy='curre
         use_live_target
     )
 
-def create_link(target, link_name, make_executable=None, mode=None):
+def create_link(target, link_name, make_executable=None, mode=None, also_urls=None):
     """
     Create a new dazzlelink pointing to a target
-    
+
     Args:
         target: The file or directory to link to
         link_name: The path for the new dazzlelink
         make_executable: Whether to make the dazzlelink executable
         mode: Default execution mode for this dazzlelink
-    
+        also_urls: Optional list of scheme-form web URLs recorded as
+            additional ``url`` locators -- the record then carries the local
+            path family AND the URL(s) (issue #25 multi-target)
+
     Returns:
         Path to the created dazzlelink file
     """
     dl = get_dazzlelink_instance()
     return dl.serialize_link(
-        target, 
-        output_path=link_name, 
-        make_executable=make_executable, 
+        target,
+        output_path=link_name,
+        make_executable=make_executable,
         mode=mode,
-        require_symlink=False
+        require_symlink=False,
+        also_urls=also_urls
     )
 
 def convert(directory, recursive=True, keep_originals=True,
@@ -173,7 +177,8 @@ def mirror(src_dir, dest_dir, recursive=True,
         make_executable=make_executable, mode=mode, config=config
     )
 
-def execute(dazzlelink_path, mode=None, config_override=None):
+def execute(dazzlelink_path, mode=None, config_override=None,
+            prefer=None, only=None, kinds=None, target_index=None):
     """
     Execute/open a dazzlelink
 
@@ -182,8 +187,19 @@ def execute(dazzlelink_path, mode=None, config_override=None):
         mode: Override execution mode
         config_override: Configuration object whose default_mode is used as a
             last-resort fallback (after the CLI mode and the file's embedded mode)
+        prefer: locality rung or reach alias -- reorder candidates by
+            rank-distance toward it (a preference; everything else stays
+            as fallback)
+        only: locality rung or reach alias -- restrict candidates to that
+            rung/reach
+        kinds: iterable of locator kinds to restrict candidates to
+        target_index: pin exactly locator [N] as numbered by info mode
+            (mutually exclusive with the selectors above -- the CLI enforces
+            the conflict; this API applies the pin and ignores nothing)
     """
-    return execute_dazzlelink(dazzlelink_path, mode, config_override=config_override)
+    return execute_dazzlelink(dazzlelink_path, mode, config_override=config_override,
+                              prefer=prefer, only=only, kinds=kinds,
+                              target_index=target_index)
 
 def scan(directory, recursive=True):
     """

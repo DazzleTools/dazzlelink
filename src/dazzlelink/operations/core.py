@@ -50,10 +50,11 @@ class DazzleLink:
         self.platform = 'windows' if os.name == 'nt' else 'linux'
         self.config = config or DazzleLinkConfig()
 
-    def serialize_link(self, link_path, output_path=None, make_executable=None, mode=None, require_symlink=True):
+    def serialize_link(self, link_path, output_path=None, make_executable=None, mode=None, require_symlink=True,
+                       also_urls=None):
         """
         Serialize a symbolic link to a .dazzlelink file
-        
+
         Args:
             link_path (str): Path to the symbolic link or file/directory to link to
             output_path (str, optional): Output path for the dazzlelink file.
@@ -64,7 +65,10 @@ class DazzleLink:
                 If None, uses configuration default.
             require_symlink (bool, optional): Whether to require link_path to be a symlink.
                 If False, will create a dazzlelink directly without checking if link_path is a symlink.
-            
+            also_urls (list, optional): Scheme-form web URLs recorded as additional
+                ``url`` locators alongside the path family (issue #25 multi-target).
+                Caller validates the form; this method records them verbatim.
+
         Returns:
             str: Path to the created dazzlelink file
         """
@@ -156,7 +160,15 @@ class DazzleLink:
                 modified=target_timestamps.get("modified"),
                 accessed=target_timestamps.get("accessed")
             )
-            
+
+            # Explicit web locators (issue #25): recorded via the typed
+            # locator list (link.locators -- the at-rest home for non-path
+            # kinds), BEFORE to_dict() so the plain-JSON and executable
+            # (polyglot) forms both carry them.
+            for url in (also_urls or []):
+                link_data.add_locator("url", url)
+                debug_print(f"Added url locator: {url}")
+
             # Update the raw data structure with additional information
             data_dict = link_data.to_dict()
             
