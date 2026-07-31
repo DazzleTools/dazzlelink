@@ -165,7 +165,7 @@ def test_info_lists_numbered_targets_and_winner(tmp_path, capsys, no_network):
     assert "Targets (" in info
     assert "[0] path" in info
     assert f"] url" in info and URL in info
-    assert "rung: file" in info and "rung: internet" in info
+    assert "rung: local" in info and "rung: internet" in info
     assert "Would open: [0]" in info
 
 
@@ -295,15 +295,17 @@ def test_tried_list_labels_prefer_order(tmp_path):
 # --- AC-14: execute --help derives from the axis ----------------------------------
 
 def test_execute_help_ladder_derives_from_axis():
-    from dazzle_linklib import LOCALITY_CONTINUUM, REACH_ALIASES
+    from dazzle_linklib import LOCALITY_CONTINUUM, REACH_ALIASES, SCHEME_ALIASES
 
     r = _dz("execute", "--help")
     assert r.returncode == 0, r.stderr
     assert "locality ladder" in r.stdout
     for rung in LOCALITY_CONTINUUM.levels():
         assert rung in r.stdout, f"rung '{rung}' missing from execute --help"
-    for alias in REACH_ALIASES:
-        assert alias in r.stdout, f"reach alias '{alias}' missing from execute --help"
+    for alias in list(REACH_ALIASES) + list(SCHEME_ALIASES):
+        assert alias in r.stdout, f"alias '{alias}' missing from execute --help"
+    # the open-ended kind fallthrough is documented in the legend
+    assert "KIND" in r.stdout
 
 
 # --- AC-15: pin + selector conflict names ALL offenders ---------------------------
@@ -317,12 +319,56 @@ def test_target_conflicts_with_selectors_names_all(tmp_path):
     assert "nothing was opened" in r.stderr
 
 
-def test_bad_rung_rejected_at_cli(tmp_path):
+def test_prefer_scheme_alias_opens_url(tmp_path, opened):
+    # AC-17: the common web spellings are tier aliases -- the trigger
+    # complaint ("--prefer http") now works, local file present.
+    target, out = _two_target(tmp_path)
+    for spelling in ("http", "url"):
+        execute_dazzlelink(str(out), mode="open", prefer=spelling)
+        assert opened[-1] == URL
+
+
+def test_kind_fallthrough_open_ended(tmp_path, opened):
+    # AC-18: any spelling that is not a rung/alias selects that exact KIND --
+    # registry-free (gopher today, user-invented protocols tomorrow).
+    target, out = _two_target(tmp_path)
+    data = json.loads(out.read_text(encoding="utf-8"))
+    data["link"]["locators"].append(
+        {"kind": "gopher", "value": "gopher://old.net/doc.pdf"})
+    out.write_text(json.dumps(data), encoding="utf-8")
+
+    execute_dazzlelink(str(out), mode="open", prefer="gopher")
+    assert opened[-1] == "gopher://old.net/doc.pdf"
+
+    execute_dazzlelink(str(out), mode="open", only="gopher")
+    assert opened[-1] == "gopher://old.net/doc.pdf"
+
+    # a spelling matching nothing: --only errors naming what the record HAS
+    # (the record is the validator); --prefer never filters, local still opens.
+    with pytest.raises(DazzleLinkException) as ei:
+        execute_dazzlelink(str(out), mode="open", only="archie")
+    assert "no locators match the selection" in str(ei.value)
+    execute_dazzlelink(str(out), mode="open", prefer="archie")
+    assert os.path.normcase(opened[-1]) == os.path.normcase(str(target))
+
+
+def test_rungless_kind_listed_and_selectable(tmp_path, capsys, opened):
+    # AC-19 at the tool: an ssh locator shows rung-less in info, is excluded
+    # by rung filters, and stays selectable by name.
     _target, out = _two_target(tmp_path)
-    r = _dz("execute", "--mode", "open", "--prefer", "nearby", str(out))
-    assert r.returncode == 1
-    assert "unknown locality rung" in r.stderr
-    assert "internet" in r.stderr and "remote" in r.stderr  # names the vocabulary
+    data = json.loads(out.read_text(encoding="utf-8"))
+    data["link"]["locators"].append(
+        {"kind": "ssh", "value": "ssh://media-pi.lan/doc.pdf"})
+    out.write_text(json.dumps(data), encoding="utf-8")
+
+    execute_dazzlelink(str(out), mode="info")
+    info = capsys.readouterr().out
+    assert "] ssh" in info and "rung: ?" in info
+
+    with pytest.raises(DazzleLinkException):
+        execute_dazzlelink(str(out), mode="open", only="local-network")
+    execute_dazzlelink(str(out), mode="open", only="ssh")
+    assert opened[-1] == "ssh://media-pi.lan/doc.pdf"
 
 
 # --- create-side validation ---------------------------------------------------------

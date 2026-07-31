@@ -33,10 +33,11 @@ requires-python = ">=3.10"
 dependencies = [
     "pywin32>=223; sys_platform == 'win32'",
     # The link-record core lives in dazzle-linklib (L2); the tool consumes it.
-    # >=0.4.0: the locality axis (LOCALITY_CONTINUUM, resolve_rung) +
-    # resolve_target(prefer=, only=, kinds=) + SchemeAwareReachability --
-    # the multi-target selection surface 0.11.0 delegates to (issue #25).
-    "dazzle-linklib>=0.4.0",
+    # >=0.5.0: the monopole locality ladder (local/intranet/internet) +
+    # scheme aliases + registry-free kind fallthrough + SchemeAwareReachability
+    # -- the multi-target selection surface 0.11.0 delegates to (issue #25,
+    # DWP Amendment 4).
+    "dazzle-linklib>=0.5.0",
 ]
 
 [project.optional-dependencies]

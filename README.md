@@ -122,7 +122,7 @@ dazzlelink execute --mode open --prefer remote paper.pdf.dazzlelink
 dazzlelink execute --mode info paper.pdf.dazzlelink
 ```
 
-`--prefer`/`--only` take a rung on the locality ladder (`file`, `unc`, `internet`, ...) or a reach alias (`local`, `local-network`, `remote`) — see `dazzlelink execute --help` for the full ladder. `--target N` opens exactly the locator numbered by `info`.
+`--prefer`/`--only` take a rung on the locality ladder (`local`, `intranet`, `internet`), a reach alias (`local-network`, `remote`), a scheme alias (`http`, `https`, `url`), or any locator kind (`ftp`, `gopher`, ... — open-ended) — see `dazzlelink execute --help` for the full ladder. `--target N` opens exactly the locator numbered by `info`.
 
 ## Command Reference
 

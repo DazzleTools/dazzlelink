@@ -10,8 +10,8 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Added
 - `create --also-url <URL>` (repeatable): records web URLs alongside the local path family. Values must be scheme-form (`https://host/file`); a typo fails at create, not at open.
-- `execute --prefer <rung|reach>`: prefer targets nearest a locality rung (`file`, `unc`, `internet`, ...) or reach alias (`local`, `local-network`, `remote`). A preference, not a filter — everything else stays as fallback. `--prefer remote` opens the URL even when the local copy exists.
-- `execute --only <rung|reach>`: restrict to targets on that rung/reach; a miss errors cleanly, naming the reaches the record actually has.
+- `execute --prefer <where>`: prefer targets at a locality rung (`local`, `intranet`, `internet` — possession at rank 0, each step outward one degree of removal), a reach alias (`local-network`, `remote`), a scheme alias (`http`/`https`/`url` → internet), or — open-ended — any locator **kind** (`ftp`, `gopher`, a protocol nobody has invented yet). A preference, not a filter — everything else stays as fallback. `--prefer remote` opens the URL even when the local copy exists.
+- `execute --only <where>`: restrict to targets at that rung/alias/kind; a miss errors cleanly, naming the reaches and kinds the record actually has (the record is the validator — there is no closed vocabulary).
 - `execute --kind <k>` (repeatable): restrict to exact locator kinds (e.g. `url`, `path`).
 - `execute --target N`: open exactly the locator numbered `[N]` by `--mode info`; out-of-range errors name the valid range. Conflicts with the selector flags (the error names every offender and acts on nothing).
 - `--mode info` now lists **all targets** the record carries — numbered `[N]` (the `--target` address space) with kind and locality rung — plus the `Would open:` line computed by the same walk `--mode open` runs, with **zero network I/O** (web URLs are never probed for display).

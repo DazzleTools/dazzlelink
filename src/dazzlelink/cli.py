@@ -13,15 +13,16 @@ from pathlib import Path
 from typing import List, Optional, Any, Dict, Tuple
 
 from ._version import get_base_version
-# The locality axis (dazzle-linklib 0.4.0, issue #25): --prefer/--only take a
-# rung on this ladder (or a reach alias), validated at runtime -- never via
-# argparse choices=, because the axis vocabulary widens (house convention).
+# The locality axis (dazzle-linklib 0.5.0, issue #25 / DWP Amendment 4):
+# --prefer/--only take a rung, a reach/scheme alias, or ANY kind spelling
+# (registry-free fallthrough) -- never argparse choices=, and no CLI-side
+# vocabulary validation: the record itself is the validator (a spelling
+# matching nothing surfaces as a no-match error naming what the record has).
 from dazzle_linklib import (
     LOCALITY_CONTINUUM,
     REACH_ALIASES,
+    SCHEME_ALIASES,
     reach_of,
-    resolve_rung,
-    DazzleLinkError as _LinklibError,
 )
 # The exact scheme-form test SchemeAwareReachability applies at execute time.
 # Imported (not copied) so create-side --also-url validation and execute-side
@@ -57,7 +58,7 @@ def _locality_epilog() -> str:
     at rank 0, network reaches below it.
     """
     lines = [
-        "locality ladder (--prefer / --only take a rung or a reach alias):",
+        "locality ladder (--prefer / --only take a rung, an alias, or a kind):",
         "",
         "  rung        rank  reach",
     ]
@@ -65,13 +66,16 @@ def _locality_epilog() -> str:
         lines.append(
             f"  {level:<11} {LOCALITY_CONTINUUM.rank(level):>+3}   {reach_of(level)}"
         )
-    aliases = ", ".join(f"{alias} -> {rung}" for alias, rung in REACH_ALIASES.items())
+    reach_aliases = ", ".join(f"{a} -> {r}" for a, r in REACH_ALIASES.items())
+    scheme_aliases = ", ".join(f"{a} -> {r}" for a, r in SCHEME_ALIASES.items())
     lines += [
         "",
-        f"  reach aliases: {aliases}",
+        f"  reach aliases:  {reach_aliases}",
+        f"  scheme aliases: {scheme_aliases}",
         "",
-        "  --prefer reorders candidates by rank-distance from the rung and keeps",
-        "  everything else as fallback; --only restricts to the rung or reach.",
+        "  any other spelling selects a locator KIND directly (ftp, ssh, gopher,",
+        "  s3, ... -- open-ended); --prefer reorders and keeps everything else as",
+        "  fallback; --only restricts to the selection.",
     ]
     return "\n".join(lines)
 
@@ -201,17 +205,17 @@ For more information, see https://github.com/djdarcy/dazzlelink
     execute_parser.add_argument('dazzlelink_path', help='Path to the dazzlelink')
     execute_parser.add_argument('--mode', '-m', choices=['info', 'open', 'auto'],
                               help='Override execution mode for this execution')
-    # Locality selectors (issue #25). Deliberately NO argparse choices= on
-    # --prefer/--only: the rung vocabulary widens with the axis, so validation
-    # happens at runtime (dazzle_linklib.resolve_rung) and the help legend in
-    # the epilog is derived from the axis itself.
-    execute_parser.add_argument('--prefer', metavar='RUNG',
-                              help='Prefer targets nearest this locality rung or reach '
-                                   'alias (see ladder below); everything else stays as '
-                                   'fallback. Default: local-first')
-    execute_parser.add_argument('--only', metavar='RUNG',
-                              help='Restrict to targets on this locality rung or reach '
-                                   'alias; error if the record has none there')
+    # Locality selectors (issue #25 / DWP Amendment 4). Deliberately NO
+    # argparse choices= and no CLI-side vocabulary validation: a spelling is
+    # a rung, a reach/scheme alias, or -- fallthrough, open-ended -- a locator
+    # KIND; the help legend in the epilog is derived from the axis itself.
+    execute_parser.add_argument('--prefer', metavar='WHERE',
+                              help='Prefer targets at this locality rung, alias, or '
+                                   'locator kind (see ladder below); everything else '
+                                   'stays as fallback. Default: local-first')
+    execute_parser.add_argument('--only', metavar='WHERE',
+                              help='Restrict to targets at this locality rung, alias, '
+                                   'or locator kind; error if the record has none there')
     execute_parser.add_argument('--kind', action='append', metavar='KIND',
                               help='Restrict to locators of this exact kind, e.g. url '
                                    'or path (repeatable)')
@@ -553,17 +557,11 @@ def main(args=None) -> int:
                       file=sys.stderr)
                 return 1
 
-            # Runtime rung validation (no argparse choices= -- the axis
-            # vocabulary widens); the library's error names every valid rung
-            # and reach alias.
-            for flag, value in (('--prefer', parsed_args.prefer),
-                                ('--only', parsed_args.only)):
-                if value is not None:
-                    try:
-                        resolve_rung(value)
-                    except _LinklibError as e:
-                        print(f"ERROR: {flag}: {e}", file=sys.stderr)
-                        return 1
+            # No vocabulary validation here (DWP A4.6): any spelling that is
+            # not a rung/alias is a KIND selector -- open-ended by design
+            # (gopher, s3, user-invented protocols). A spelling matching
+            # nothing in the record surfaces as the no-match error naming
+            # what the record actually has.
 
             execute(
                 parsed_args.dazzlelink_path,
