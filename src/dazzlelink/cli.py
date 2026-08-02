@@ -94,18 +94,20 @@ def create_parser() -> argparse.ArgumentParser:
         description='Dazzlelink - Symbolic Link Preservation Tool',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-    dazzlelink create target.txt link.dazzlelink       Create a new dazzlelink
-    dazzlelink export path/to/symlink                  Export a symlink to a dazzlelink
-    dazzlelink import path/to/file.dazzlelink          Import a dazzlelink, recreating the symlink
-    dazzlelink scan /path -r                           Scan a directory recursively for symlinks
-    dazzlelink convert /path                           Convert all symlinks in a directory to dazzlelinks
-    dazzlelink mirror /source /dest                    Mirror a directory structure with dazzlelinks
-    dazzlelink execute /path/to/file.dazzlelink        Execute/open a dazzlelink
-    dazzlelink check /path                             Check symlinks and report broken ones
-    dazzlelink rebase /path --relative                 Convert absolute links to relative paths
+Examples (what each invocation produces):
+    dazzlelink create doc.pdf doc.pdf.dazzlelink    Write doc.pdf.dazzlelink pointing at doc.pdf
+    dazzlelink create --also-url https://example.org/doc.pdf doc.pdf doc.pdf.dazzlelink
+                                                    ...same record, also carrying the web URL
+    dazzlelink export path/to/symlink               Capture existing symlink as path/to/symlink.dazzlelink
+    dazzlelink import path/to/file.dazzlelink       Recreate the symlink the dazzlelink record describes
+    dazzlelink scan /path -r                        List symlinks under /path, recursively
+    dazzlelink convert /path                        Write a .dazzlelink beside each symlink under /path
+    dazzlelink mirror /source /dest                 Recreate /source's tree in /dest using dazzlelinks
+    dazzlelink execute file.dazzlelink              Open the record's target (--mode info to inspect it)
+    dazzlelink check /path                          Report broken symlinks under /path
+    dazzlelink rebase /path --relative              Rewrite stored absolute targets as relative
 
-For more information, see https://github.com/djdarcy/dazzlelink
+For more information, see https://github.com/DazzleTools/dazzlelink
 """
     )
     
