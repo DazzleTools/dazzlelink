@@ -18,6 +18,7 @@ Dazzlelink is a cross-platform tool that exports, imports, and manages symbolic 
 ## Features
 
 - **Export and Import**: Save symbolic links to portable `.dazzlelink` files and recreate them on any system
+- **Multi-Target Records**: One link carries the local copy AND its web URL — offline-first with web fallback, or pick the copy you want via the locality ladder (`--prefer remote`)
 - **Cross-Platform Support**: Seamlessly handle symlinks between Windows, Linux, macOS, and BSD
 - **UNC Path Handling**: Intelligently convert between UNC paths (`\\server\share`) and subst'ed drive letters
 - **Timestamp Preservation**: Maintain creation, modification, and access times when recreating symlinks

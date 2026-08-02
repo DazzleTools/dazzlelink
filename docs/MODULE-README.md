@@ -9,17 +9,22 @@ dazzlelink/
 ├── __init__.py              # Package initialization and high-level API
 ├── cli.py                   # Command-line interface
 ├── config.py                # Configuration handling
-├── data.py                  # Dazzlelink data structures
+├── data.py                  # Re-exports the record model from dazzle-linklib
 ├── exceptions.py            # Custom exceptions
-├── path.py                  # Path handling (will be replaced by UNC-lib)
 ├── operations/              # Core operations
 │   ├── __init__.py          # Operations package initialization
-│   ├── core.py              # Core DazzleLink class
-│   ├── links.py             # Symlink operations
+│   ├── core.py              # Core DazzleLink class (serialize_link)
+│   ├── links.py             # Symlink + executable (polyglot) operations
 │   ├── timestamps.py        # Timestamp handling
 │   ├── batch.py             # Batch operations
-│   └── recreate.py          # Link recreation functionality
+│   └── recreate.py          # Execute/open + link recreation
 ```
+
+The tool is a thin client over the DazzleLib stack: the record model, target
+resolution, and the locality axis live in **dazzle-linklib**; UNC/drive/subst
+identity in **unctools**; symlink/metadata OS mechanics in **dazzle-filekit**.
+(The old `path.py` UNC adapter was removed in v0.10.0 — its replacement map is
+in that release's CHANGELOG entry.)
 
 ## Installation for Development
 
