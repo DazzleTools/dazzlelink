@@ -1,6 +1,6 @@
 # Dazzlelink Module
 
-This is the modular version of Dazzlelink. It's been restructured to make the code more maintainable and to support better integration with UNC-lib and other libraries.
+A developer-facing map of the `dazzlelink` package. The tool is a thin client over the DazzleLib stack: it owns the CLI, configuration layering, and the executable (polyglot) record format, and delegates everything with a second consumer to the stack libraries below.
 
 ## Package Structure
 
@@ -9,50 +9,67 @@ dazzlelink/
 ├── __init__.py              # Package initialization and high-level API
 ├── cli.py                   # Command-line interface
 ├── config.py                # Configuration handling
-├── data.py                  # Dazzlelink data structures
+├── data.py                  # Re-exports the record model from dazzle-linklib
 ├── exceptions.py            # Custom exceptions
-├── path.py                  # Path handling (will be replaced by UNC-lib)
 ├── operations/              # Core operations
 │   ├── __init__.py          # Operations package initialization
-│   ├── core.py              # Core DazzleLink class
-│   ├── links.py             # Symlink operations
+│   ├── core.py              # Core DazzleLink class (serialize_link)
+│   ├── links.py             # Symlink + executable (polyglot) operations
 │   ├── timestamps.py        # Timestamp handling
 │   ├── batch.py             # Batch operations
-│   └── recreate.py          # Link recreation functionality
+│   └── recreate.py          # Execute/open + link recreation
 ```
+
+## The DazzleLib Stack
+
+One home per capability — each layer is its own repo and PyPI package:
+
+| Library | Owns | Links |
+|---|---|---|
+| [dazzle-linklib](https://github.com/DazzleLib/dazzle-linklib) | The `.dazzlelink` record model (`DazzleLinkData`, re-exported here as `dazzlelink.data`), target resolution (the locator walk, live re-resolution, scheme-aware reachability), the locality axis behind `--prefer`/`--only`, and record discovery/rebase | [PyPI](https://pypi.org/project/dazzle-linklib/) · [API docs](https://github.com/DazzleLib/dazzle-linklib/blob/main/docs/api.md) |
+| [unctools](https://github.com/DazzleLib/UNCtools) | UNC/drive/subst path identity: the kinded `path_variants` source behind the portable path family and execute-time re-derivation | [PyPI](https://pypi.org/project/unctools/) |
+| [dazzle-filekit](https://github.com/DazzleLib/dazzle-filekit) | Filesystem mechanics: symlink creation, timestamp/metadata application | [PyPI](https://pypi.org/project/dazzle-filekit/) · [docs](https://app.readthedocs.org/projects/dazzle-filekit/) |
+| [dazzle-lib](https://github.com/DazzleLib/dazzle-lib) | Bedrock contracts (serialization mixins, error taxonomy, the Continuum primitive the locality ladder is built on) | [PyPI](https://pypi.org/project/dazzle-lib/) |
+
+The tool's old private UNC adapter (`path.py`) was removed in v0.10.0 once unctools + dazzle-linklib covered it — the per-symbol replacement map is in that release's CHANGELOG entry.
 
 ## Installation for Development
 
-To install the module in development mode:
-
 ```bash
 # Clone the repository
-git clone https://github.com/djdarcy/dazzlelink.git
+git clone https://github.com/DazzleTools/dazzlelink.git
 cd dazzlelink
 
 # Install in development mode
 pip install -e .
 
-# Optional: Install with Windows-specific dependencies
+# Optional: Windows-specific dependencies
 pip install -e ".[windows]"
 
-# Optional: Install development dependencies
+# Optional: development dependencies
 pip install -e ".[dev]"
 ```
+
+Working across the stack? Editable-install the libraries too (`pip install -e <path> --no-deps` for each), so a stack-wide change is testable without publishing.
 
 ## Usage as a Module
 
 ```python
 import dazzlelink
 
-# Create a dazzlelink
+# Create a dazzlelink (optionally multi-target: local path + web URL)
 dazzlelink.create_link("target.txt", "link.dazzlelink")
+dazzlelink.create_link("paper.pdf", "paper.pdf.dazzlelink",
+                       also_urls=["https://example.org/paper.pdf"])
 
 # Export a symlink to a dazzlelink
 dazzlelink.export_link("path/to/symlink")
 
 # Import a dazzlelink, recreating the original symlink
 dazzlelink.import_link("path/to/dazzlelink")
+
+# Open a record's target -- selectors match the CLI (prefer/only/kinds/target_index)
+dazzlelink.execute("paper.pdf.dazzlelink", mode="open", prefer="remote")
 
 # Convert all symlinks in a directory to dazzlelinks
 dazzlelinks = dazzlelink.convert("/path/to/directory")
@@ -63,29 +80,8 @@ results = dazzlelink.check("/path/to/directory")
 
 ## Command-Line Usage
 
-The command-line interface is unchanged from the monolithic version:
+See [COMMAND_REFERENCE.md](COMMAND_REFERENCE.md) for the full surface; `dazzlelink {command} -h` is always authoritative.
 
-```bash
-# Create a dazzlelink
-dazzlelink create target.txt link.dazzlelink
+## Compatibility with the Monolithic Version
 
-# Export a symlink to a dazzlelink
-dazzlelink export path/to/symlink
-
-# Import a dazzlelink
-dazzlelink import path/to/dazzlelink
-
-# Convert all symlinks in a directory to dazzlelinks
-dazzlelink convert /path/to/directory
-
-# Check for broken symlinks
-dazzlelink check /path/to/directory
-```
-
-## Future Integration with UNC-lib
-
-This modular structure is designed to facilitate future integration with UNC-lib. The current path handling in `path.py` will be replaced with UNC-lib functionality, while maintaining the same API to ensure backward compatibility.
-
-## Compatibility with Monolithic Version
-
-The monolithic version of Dazzlelink now lives at `legacy/dazzlelink_monolith.py` and is deprecated in favor of the installable package (`pip install -e .`, then `dazzlelink` or `python -m dazzlelink`). It remains in the repository as a fallback during the deprecation window but no longer receives new features (see issue #18 for the port status).
+The monolith lives at `legacy/dazzlelink_monolith.py`, prints a deprecation notice, and is frozen — all features and fixes land in the installable package (see issue #18 for the port history). Record files remain wire-compatible in both directions.

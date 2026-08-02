@@ -18,6 +18,7 @@ Dazzlelink is a cross-platform tool that exports, imports, and manages symbolic 
 ## Features
 
 - **Export and Import**: Save symbolic links to portable `.dazzlelink` files and recreate them on any system
+- **Multi-Target Records**: One link carries the local copy AND its web URL — offline-first with web fallback, or pick the copy you want via the locality ladder (`--prefer remote`)
 - **Cross-Platform Support**: Seamlessly handle symlinks between Windows, Linux, macOS, and BSD
 - **UNC Path Handling**: Intelligently convert between UNC paths (`\\server\share`) and subst'ed drive letters
 - **Timestamp Preservation**: Maintain creation, modification, and access times when recreating symlinks
@@ -46,7 +47,7 @@ Automatically convert between different representations of network paths (UNC pa
 
 ### Prerequisites
 
-- Python 3.6 or higher
+- Python 3.10 or higher
 - On Windows: pywin32 (optional, for enhanced Windows support)
 
 ### Install from PyPI
@@ -58,7 +59,7 @@ pip install dazzlelink
 ### Manual Installation
 
 ```bash
-git clone https://github.com/dustinjd/dazzlelink.git
+git clone https://github.com/DazzleTools/dazzlelink.git
 cd dazzlelink
 pip install -e .
 ```
@@ -128,7 +129,7 @@ dazzlelink execute --mode info paper.pdf.dazzlelink
 
 ## Command Reference
 
-The full command reference is available in [`docs/COMMAND_REFERENCE.md`](https://github.com/djdarcy/dazzlelink/blob/main/docs/COMMAND_REFERENCE.md)
+The full command reference is available in [`docs/COMMAND_REFERENCE.md`](docs/COMMAND_REFERENCE.md)
 
 | Command | Description |
 |---------|-------------|
@@ -142,6 +143,8 @@ The full command reference is available in [`docs/COMMAND_REFERENCE.md`](https:/
 | `check` | Check symlinks and report broken ones |
 | `rebase` | Change link paths (relative/absolute conversion) |
 | `config` | View or set configuration options |
+| `copy` | Copy symlinks to another location |
+| `update-config` | Update stored configuration for many records |
 
 ## Common Options
 
@@ -213,7 +216,7 @@ Dazzlelink is part of [Dazzle's](https://github.com/djdarcy/dazzle) OmniTools su
 
 ### 🌐 Relinker Ecosystem Integration
 
-Dazzlelink metadata serves as a foundational building block of the larger Relinker ecosystem—a decentralized, content-aware archival and link-resolution system designed to combat digital link rot and enable intelligent, persistent content linking. The protocol aims to better manage complex link graph relations, metadata similarity, and provide resilient content preservation. For a detailed exploration of the broader vision and its future roadmap, visit the [Relinker Project Overview](https://github.com/djdarcy/dazzlelink/blob/main/docs/RELINKER.md).
+Dazzlelink metadata serves as a foundational building block of the larger Relinker ecosystem—a decentralized, content-aware archival and link-resolution system designed to combat digital link rot and enable intelligent, persistent content linking. The protocol aims to better manage complex link graph relations, metadata similarity, and provide resilient content preservation. For a detailed exploration of the broader vision and its future roadmap, visit the [Relinker Project Overview](https://github.com/DazzleTools/dazzlelink/blob/main/docs/RELINKER.md).
 
 ## Library Usage
 
@@ -263,7 +266,7 @@ This modular design allows for better extensibility and enables using specific c
 
 ## Contributing
 
-Contributions are welcome! Issues, suggestions, and bug reports are all appreciated. Please open an [issue](https://github.com/djdarcy/dazzlelink/issues) if you find something that can be improved. Or: 
+Contributions are welcome! Issues, suggestions, and bug reports are all appreciated. Please open an [issue](https://github.com/DazzleTools/dazzlelink/issues) if you find something that can be improved. Or:
 
 1. Fork this repository and clone a fork.
 2. Make changes on a new branch (e.g., `feature/new_thing`).
@@ -276,7 +279,7 @@ Like the project?
 ### Development Setup
 
 ```bash
-git clone https://github.com/dustinjd/dazzlelink.git
+git clone https://github.com/DazzleTools/dazzlelink.git
 cd dazzlelink
 pip install -e ".[dev]"
 ```

@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file. This projec
 
 ---
 
+## [0.11.1] - 2026-08-02
+
+**Documentation release** — docs are release content too. Ships as the first published cut of the 0.11 line (0.11.0 was tagged during validation but never published).
+
+### Documentation
+- `docs/COMMAND_REFERENCE.md` regenerated from the real CLI surface (all 12 commands, the locality selectors, `--also-url`, `--config-level`); was a UTF-16 relic predating half the tool.
+- `docs/DAZZLE_DOCS.md` rewritten for mechanism over adjectives: the records-vs-symlink/junction/hardlink comparison and transparency trade-off, the portable path family with the resolve-on-the-opening-machine contract, timestamp strategies with a when-to-use table, and a Multi-Target Records section.
+- `docs/MODULE-README.md` relooked: linked DazzleLib stack table (dazzle-linklib / unctools / dazzle-filekit / dazzle-lib), corrected package tree, module-usage examples incl. multi-target.
+- `docs/ROADMAP.md` rebased from the v0.5.x era to shipped reality; `docs/RELINKER.md` gains a status block (0.11 is the first working slice).
+- `README.md`: multi-target feature bullet, stale URLs and Python floor corrected, `copy`/`update-config` join the command table.
+- New `.github/rulesets/` records the repo's server-side ruleset configuration (the active require-signed-commits payload + README).
+- UTF-16 relics re-encoded to UTF-8; rendered docs soft-wrapped throughout.
+
 ## [0.11.0] - 2026-07-30
 
 **Milestone: multi-target dazzlelinks** (issue #25). One record now carries a local path AND a web URL — and the user CHOOSES which copy to open via a rung on the locality ladder. One `.dazzlelink` replaces the `.dazzlelink` + `.url` pair.
@@ -19,14 +32,14 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Changed
 - `execute` judges reachability scheme-aware: filesystem candidates by existence, scheme-form candidates (`https://...`, `ipfs://...`) assumed openable — whether a scheme opens is the OS handler's business at open time. Records mixing paths and URLs fall back local → web naturally; path-only records behave exactly as before.
-- Requires `dazzle-linklib>=0.4.0` (the locality axis + selection + `SchemeAwareReachability`).
+- Requires `dazzle-linklib>=0.5.0` (the monopole locality ladder, scheme aliases, registry-free kind selection, and `SchemeAwareReachability`).
 
 ### Deprecated
 - (carried from 0.10.0) Execute's final fallback probing the **link's** own `path_representations` — now additionally skipped whenever a selector (`--prefer`/`--only`/`--kind`) narrowed the walk, so a filtered miss can't leak to the link file's old location. Removal still slated for the next minor.
 
 ## [0.10.0] - 2026-07-30
 
-**Milestone: portable cross-references delivered** (issues #13 + #24; the collabN-local portable-paths design). Records created anywhere now carry — and can re-derive — the path forms that survive machine changes: relative (synced trees), UNC/drive (network bases), and subst expansions.
+**Milestone: portable cross-references delivered** (issues #13 + #24; the collabN-local portable-paths design). Records created anywhere now carry (and can re-derive) the path forms that survive machine changes: relative (synced trees), UNC/drive (network bases), and subst expansions.
 
 ### Added
 - `execute` performs **live re-resolution**: every stored form is re-derived against the *executing* machine's current drive/UNC/subst mappings (via dazzle-linklib's resolver walk + unctools' kinded `path_variants`), so a base that died since creation can resolve through whatever this machine maps today (#24).
